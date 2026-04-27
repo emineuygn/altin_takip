@@ -2,13 +2,14 @@ const cheerio = require('cheerio');
 
 module.exports = (html, cleanPrice) => {
     const $ = cheerio.load(html);
-    
-    // Gencay için tipik fiyat alanları
-    let nakit = $(".price-value").first().text() || $(".product-price").text() || $(".current-price").text();
-    let kart = $(".old-price").text() || nakit;
+
+    // Ürün sayfasındaki asıl fiyat bloğu: div#eft-price ve div#credit-card-price
+    // (p.eft-price class'lı olanlar ilgisiz ürünler, onları atlıyoruz)
+    const havale = $('div#eft-price .woocommerce-Price-amount bdi').first().text();
+    const kart   = $('div#credit-card-price .woocommerce-Price-amount bdi').first().text();
 
     return {
-        n: cleanPrice(nakit),
-        h: cleanPrice(kart)
+        n: cleanPrice(kart   || havale),  // normal fiyat = kredi kartı fiyatı
+        h: cleanPrice(havale)             // havale/EFT fiyatı
     };
 };

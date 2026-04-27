@@ -8,12 +8,14 @@ app.use(cors());
 const agent = new https.Agent({ rejectUnauthorized: false });
 
 const HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
     'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache',
-    'Referer': 'https://www.google.com/'
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Cache-Control': 'max-age=0'
 };
 
 const cleanPrice = (text) => {
@@ -120,14 +122,14 @@ app.get('/api/gencaltin', (req, res) => scrapeTriple(res, "Genç Altın", {
 }, 'gencaltin'));
 app.get('/api/rima', (req, res) => scrapeTriple(res, "Rima Gold", {
     g: "https://rimagold.com.tr/urun/1-gr-24-ayar-gmr-gram-altin/",
-    c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-(2026)",
+    c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-2026/",
     a: "https://rimagold.com.tr/urun/22-ayar-15-gram-ajda-bilezik/"
 }, 'rima'));
 // server.js içindeki endpoint
-app.get('/api/gencay', (req, res) => scrapeTriple(res, "Gencay", {
-    g: "https://www.gencay.com.tr/urun/1-gr-24-ayar-gram-altin", // Linki sitelerinden teyit etmelisin
-    c: "https://www.gencay.com.tr/urun/yeni-tarihli-ceyrek-altin",
-    a: "https://www.gencay.com.tr/urun/15-gr-22-ayar-ajda-bilezik"
+app.get('/api/gencay', (req, res) => scrapeTriple(res, "Gencay Gold", {
+    g: "https://gencaygold.com/urun/1-gr-24-ayar-gencay-gram-altin/",
+    c: "https://gencaygold.com/urun/ceyrek-altin-darphane-eski-tarihli/",
+    a: "https://gencaygold.com/urun/oluklu-ajda-bilezik-22-ayar-15-gram/"
 }, 'gencay'));
 
 // Diğer firmalar (Şu anlık sadece gram linkleri var, onları da tekli scrape edebiliriz)

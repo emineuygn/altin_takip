@@ -3,18 +3,19 @@ const cheerio = require('cheerio');
 module.exports = (html, cleanPrice) => {
     const $ = cheerio.load(html);
     
-    // Gönderdiğin görsellerden çıkardığım tablo yapısı:
-    // Kredi Kartı fiyatı ilk <td> içinde, Havale fiyatı ikinci <td> içindedir.
-    const rows = $("tbody.text-center.border tr");
+    // Rima'da fiyatlar genellikle "woocommerce-Price-amount" içinde olur
+    // summary price içindeki ilk miktar nakit, varsa indirimli olanı yakalarız
+    let priceText = $(".summary .price").first().text();
     
-    // Genellikle ilk satırdaki fiyatları alıyoruz (Sigortalı Kargo satırı)
-    const firstRow = rows.first();
-    
-    const kartFiyati = firstRow.find("td").eq(0).text();   // K.KARTI sütunu
-    const havaleFiyati = firstRow.find("td").eq(1).text(); // Havale/EFT sütunu
+    // Eğer summary boşsa tüm sayfada ilk gördüğün fiyatı almayı dene
+    if (!priceText) {
+        priceText = $(".woocommerce-Price-amount").first().text();
+    }
+
+    const cleaned = cleanPrice(priceText);
 
     return {
-        n: cleanPrice(havaleFiyati), // Nakit (Havale)
-        h: cleanPrice(kartFiyati)    // Kart (Kredi Kartı)
+        n: cleaned,
+        h: cleaned // Rima genelde tek fiyat gösterdiği için ikisine de aynı şeyi yazdık
     };
 };
