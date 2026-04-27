@@ -1,0 +1,149 @@
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+const https = require('https');
+
+const app = express();
+app.use(cors());
+const agent = new https.Agent({ rejectUnauthorized: false });
+
+const HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+    'Accept-Language': 'tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Referer': 'https://www.google.com/'
+};
+
+const cleanPrice = (text) => {
+    if (!text || typeof text !== 'string') return "-";
+    let cleaned = text.replace(/[^\d.,]/g, '').trim();
+    if (!cleaned) return "-";
+    const price = parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
+    return isNaN(price) ? "-" : price;
+};
+
+// Parser'lar (Services içindeki dosyaların isimleriyle birebir aynı olmalı)
+const parsers = {
+    altinanne: require('./services/altinanne'),
+    aga: require('./services/aga'),
+    topaloglu: require('./services/topaloglu'),
+    gencaltin: require('./services/gencaltin'),
+    nadir: require('./services/nadir'),
+    ahlatci: require('./services/ahlatci'),
+    gramal: require('./services/gramal'),
+    rima: require('./services/rima'),
+    altindukkani: require('./services/altindukkani'),
+    gencay: require('./services/gencay'),
+    samsun: require('./services/samsun')
+};
+
+// Ortak Scrape Fonksiyonu
+const scrapeTriple = async (res, storeName, urls, parserKey) => {
+    try {
+        const fetchUrl = async (url) => {
+            if (!url) return null;
+            try {
+                const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
+                return response.data;
+            } catch (e) { return null; }
+        };
+
+        const [gData, cData, aData] = await Promise.all([
+            fetchUrl(urls.g),
+            fetchUrl(urls.c),
+            fetchUrl(urls.a)
+        ]);
+
+        const parser = parsers[parserKey];
+        res.json({
+            name: storeName,
+            gram: gData ? parser(gData, cleanPrice) : { n: "-", h: "-" },
+            ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
+            ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
+            status: "online"
+        });
+    } catch (error) {
+        res.json({ name: storeName, status: "offline" });
+    }
+};
+
+// --- ENDPOINTS ---
+
+app.get('/api/altinanne', (req, res) => scrapeTriple(res, "Altın Anne", {
+    g: "https://altinanne.com/urun/1-gr-24-ayar-ard-gram-altin-1-g-adr-995",
+    c: "https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk",
+    a:  "https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd" 
+}, 'altinanne'));
+
+// Nadir Gold için doğrudan fiyat servisinden veri çekiyoruz (HTML parse etmekle uğraşmıyoruz
+app.get('/api/nadir', async (req, res) => {
+    try {
+        // API yerine doğrudan ana sayfadaki fiyat listesine gidiyoruz
+        const url = "https://www.nadirgold.com/altin-fiyatlari"; 
+        
+        const response = await axios.get(url, { 
+            headers: HEADERS, 
+            httpsAgent: agent,
+            timeout: 7000 
+        });
+
+        const parser = require('./services/nadir');
+        const prices = parser(response.data, cleanPrice);
+
+        res.json({
+            name: "Nadir Gold",
+            ...prices,
+            status: "online"
+        });
+    } catch (e) {
+        res.json({ name: "Nadir Gold", status: "offline" });
+    }
+});
+app.get('/api/aga', (req, res) => scrapeTriple(res, "Aga Külçe", {
+    g: "https://www.agakulche.com/agakulche-1-gr-995-24-ayar-amr-kulce-altin",
+    c: "https://www.agakulche.com/ziynet-ceyrek-altin-yeni-2024-kulplu",
+    a: "https://www.agakulche.com/15-gr-22-ayar-ajda-bilezik"
+}, 'aga'));
+
+app.get('/api/topaloglu', (req, res) => scrapeTriple(res, "Topaloğlu", {
+    g: "https://www.etopaloglualtin.com/urun/1-gram-24-ayar-iar-gramaltin",
+    c: "https://www.etopaloglualtin.com/urun/ceyrek-altin",
+    a: "https://www.etopaloglualtin.com/urun/15-gr-22-ayar-ajda-bilezik"
+}, 'topaloglu'));
+
+app.get('/api/gencaltin', (req, res) => scrapeTriple(res, "Genç Altın", {
+    g: "https://gencaltin.com/1-gram-24-ayar-kulce-altin",
+    c: "https://gencaltin.com/ziynet-ceyrek-altin-yeni-tarihli",
+    a: "https://gencaltin.com/15-gr-22-ayar-ajda-bilezik"
+}, 'gencaltin'));
+app.get('/api/rima', (req, res) => scrapeTriple(res, "Rima Gold", {
+    g: "https://rimagold.com.tr/urun/1-gr-24-ayar-gmr-gram-altin/",
+    c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-(2026)",
+    a: "https://rimagold.com.tr/urun/22-ayar-15-gram-ajda-bilezik/"
+}, 'rima'));
+// server.js içindeki endpoint
+app.get('/api/gencay', (req, res) => scrapeTriple(res, "Gencay", {
+    g: "https://www.gencay.com.tr/urun/1-gr-24-ayar-gram-altin", // Linki sitelerinden teyit etmelisin
+    c: "https://www.gencay.com.tr/urun/yeni-tarihli-ceyrek-altin",
+    a: "https://www.gencay.com.tr/urun/15-gr-22-ayar-ajda-bilezik"
+}, 'gencay'));
+
+// Diğer firmalar (Şu anlık sadece gram linkleri var, onları da tekli scrape edebiliriz)
+const singleScrape = (slug, name, url) => {
+    app.get(`/api/${slug}`, async (req, res) => {
+        try {
+            const { data } = await axios.get(url, { headers: HEADERS, httpsAgent: agent });
+            const prices = parsers[slug](data, cleanPrice);
+            res.json({ name, gram: prices, ceyrek: {n:"-",h:"-"}, ajda: {n:"-",h:"-"}, status: "online" });
+        } catch (e) { res.json({ name, status: "offline" }); }
+    });
+};
+
+singleScrape('ahlatci', 'Ahlatcı', 'https://www.ahlatcistore.com.tr/urun/24-ayar-1g-altin');
+singleScrape('gramal', 'Gramal', 'https://www.gramal.com.tr/1-gr-24-ayar-kulce-altin-995-0-isgold');
+singleScrape('altindukkani', 'Altın Dükkanı', 'https://www.altindukkani.com.tr/isgold-1-gram-altin-24-ayar-0995-kulce-altin');
+singleScrape('samsun', 'Samsun Altın', 'https://www.samsungold.com.tr/urun/1-gr-24-ayar-gram-altin');
+
+app.listen(4000, () => console.log("🚀 Server 4000 portunda hazır!"));
