@@ -22,5 +22,5 @@ module.exports = (html, cleanPrice) => {
         if (bodyPrices) n = cleanPrice(bodyPrices[0]);
     }
 
-    return { n, h };
+    return { n: h, h: n }; // h büyük fiyat → normal, n küçük → havale
 };

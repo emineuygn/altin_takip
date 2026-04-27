@@ -132,17 +132,23 @@ export default function GoldTerminal() {
                       <td key={idx} className={`p-4 border-r border-zinc-900/50 transition-all duration-500 ${
                         isMin ? 'bg-[#ccff00] shadow-[inset_0_0_20px_rgba(204,255,0,0.3)]' : ''
                       }`}>
-                        <div className="flex justify-around items-center gap-2">
-                          <span className={`text-[10px] font-bold ${isMin ? 'text-black' : 'text-zinc-500'}`}>
-                            {safeP.n} {safeP.n !== "-" ? "₺" : ""}
-                          </span>
-                          <span className={`text-lg font-black tabular-nums ${
-                            isMin ? 'text-black' : 
-                            idx === 0 ? 'text-[#00ff00]' : idx === 1 ? 'text-orange-500' : 'text-blue-400'
-                          }`}>
-                            {safeP.h} {safeP.h !== "-" ? "₺" : ""}
-                          </span>
-                        </div>
+                       <div className="flex flex-col items-center gap-1">
+                         <div className="flex flex-col items-center">
+                           <span className={`text-[8px] uppercase tracking-widest ${isMin ? 'text-black/60' : 'text-zinc-600'}`}>Normal</span>
+                           <span className={`text-lg font-black tabular-nums ${
+                             isMin ? 'text-black' : 
+                             idx === 0 ? 'text-[#00ff00]' : idx === 1 ? 'text-orange-500' : 'text-blue-400'
+                    }`}>
+                      {safeP.n} {safeP.n !== "-" ? "₺" : ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className={`text-[8px] uppercase tracking-widest ${isMin ? 'text-black/60' : 'text-zinc-600'}`}>Havale</span>
+                    <span className={`text-[10px] font-bold tabular-nums ${isMin ? 'text-black' : 'text-zinc-400'}`}>
+                      {safeP.h} {safeP.h !== "-" ? "₺" : ""}
+                    </span>
+                  </div>
+                </div>
                       </td>
                     );
                   })}
