@@ -1,42 +1,21 @@
 const cheerio = require('cheerio');
 
-/**
- * Genç Altın Özel Parser
- * Analiz: Sitede fiyatlar yan yana bloklar halinde. 
- * Havale/EFT başlığının hemen altındaki div fiyatı içeriyor.
- */
 module.exports = (html, cleanPrice) => {
     const $ = cheerio.load(html);
     
-    let n = "-"; // Havale/EFT
-    let h = "-"; // Tek Çekim (Normal)
+    let havale = "-";
+    let normal = "-";
 
-    // Fiyat bloklarını tarıyoruz
-    $("div").each((i, el) => {
-        const text = $(el).text().trim();
+    $(".text-tiny.lg\\:text-lg.font-marcellus.text-dark").each((i, el) => {
+        const label = $(el).text().trim();
+        const fiyat = $(el).closest("div").next("div").find(".text-tiny.lg\\:text-\\[22px\\]").first().text().trim();
         
-        // Havale/EFT başlığını yakaladığımızda bir sonraki div'deki rakamı al
-        if (/Havale\/EFT/i.test(text)) {
-            const priceVal = $(el).next("div").text();
-            if (priceVal) n = cleanPrice(priceVal);
-        }
-        
-        // Tek Çekim Fiyatı başlığını yakaladığımızda bir sonraki div'deki rakamı al
-        if (/Tek Çekim Fiyatı/i.test(text)) {
-            const priceVal = $(el).next("div").text();
-            if (priceVal) h = cleanPrice(priceVal);
-        }
+        if (/Tek Çekim/i.test(label)) normal = cleanPrice(fiyat);
+        if (/Havale/i.test(label)) havale = cleanPrice(fiyat);
     });
 
-    // Fallback: Eğer yukarıdaki yapı yakalayamazsa (class bazlı deneme)
-    if (n === "-") {
-        const havaleBlock = $("div:contains('Havale/EFT')").last().next("div");
-        n = cleanPrice(havaleBlock.text());
-    }
-
-    return {
-        n: n,
-        h: h,
-        a: "-" // Ajda linki gelirse burası dolacak, şu an çizgi.
+    return { 
+        n: normal === "-" ? havale : normal,
+        h: havale
     };
 };

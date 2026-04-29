@@ -1,18 +1,15 @@
 const cheerio = require('cheerio');
 
-/**
- * Topaloğlu Altın Özel Parser
- * Analiz: 
- * - Normal Fiyat: .product-price-new sınıfı içinde.
- * - Havale Fiyatı: .product-list-row içinde "Havale" metni aranarak yanındaki .product-list-content'ten çekilir.
- */
 module.exports = (html, cleanPrice) => {
     const $ = cheerio.load(html);
 
-    // 1. Normal/Kartlı Fiyat (Ekranda büyük görünen ana fiyat)
-    const normalFiyatText = $(".product-price-new").first().text();
+    // Normal fiyat - devtools'da product-price-old görünüyor
+    const normalFiyatText = $(".product-price-old").first().text();
+    
+    // Fallback: product-price içindeki ilk rakam
+    const fallback = $(".product-price").first().text();
 
-    // 2. Havale Fiyatı (Liste satırları arasından "Havale" içeren satırı buluyoruz)
+    // Havale fiyatı - "Havale" satırındaki içerik
     let havaleFiyatText = "-";
     $(".product-list-row").each((i, el) => {
         const rowTitle = $(el).find(".product-list-title").text();
@@ -21,13 +18,11 @@ module.exports = (html, cleanPrice) => {
         }
     });
 
-    // Eğer havale fiyatı listede bulunamazsa normal fiyatı baz alalım
-    const n = havaleFiyatText !== "-" ? cleanPrice(havaleFiyatText) : cleanPrice(normalFiyatText);
-    const h = cleanPrice(normalFiyatText);
+    const normal = cleanPrice(normalFiyatText) !== "-" ? cleanPrice(normalFiyatText) : cleanPrice(fallback);
+    const havale = havaleFiyatText !== "-" ? cleanPrice(havaleFiyatText) : normal;
 
     return {
-        n: n, // Havale/İndirimli sütununda görünecek
-        h: h, // Normal sütunda görünecek
-        a: "-" // Ajda yok, çizgi çekiyoruz
+        n: normal,
+        h: havale
     };
 };

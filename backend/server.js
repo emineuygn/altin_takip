@@ -82,23 +82,9 @@ app.get('/api/altinanne', (req, res) => scrapeTriple(res, "Altın Anne", {
 // Nadir Gold için doğrudan fiyat servisinden veri çekiyoruz (HTML parse etmekle uğraşmıyoruz
 app.get('/api/nadir', async (req, res) => {
     try {
-        // API yerine doğrudan ana sayfadaki fiyat listesine gidiyoruz
-        const url = "https://www.nadirgold.com/altin-fiyatlari"; 
-        
-        const response = await axios.get(url, { 
-            headers: HEADERS, 
-            httpsAgent: agent,
-            timeout: 7000 
-        });
-
         const parser = require('./services/nadir');
-        const prices = parser(response.data, cleanPrice);
-
-        res.json({
-            name: "Nadir Gold",
-            ...prices,
-            status: "online"
-        });
+        const prices = await parser();
+        res.json({ name: "Nadir Gold", ...prices, status: "online" });
     } catch (e) {
         res.json({ name: "Nadir Gold", status: "offline" });
     }
@@ -121,16 +107,34 @@ app.get('/api/gencaltin', (req, res) => scrapeTriple(res, "Genç Altın", {
     a: "https://gencaltin.com/15-gr-22-ayar-ajda-bilezik"
 }, 'gencaltin'));
 app.get('/api/rima', (req, res) => scrapeTriple(res, "Rima Gold", {
-    g: "https://rimagold.com.tr/urun/1-gr-24-ayar-gmr-gram-altin/",
-    c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-2026/",
-    a: "https://rimagold.com.tr/urun/22-ayar-15-gram-ajda-bilezik/"
+    g: "https://rimagold.com.tr/urunler/1-gr-24-ayar-gmr-gram-altin",
+    c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-(2026)",
+    a: "https://rimagold.com.tr/urunler/22-ayar-15-gram-yuvarlak-ajda-bilezik"
 }, 'rima'));
+
+app.get('/api/samsun', (req, res) => scrapeTriple(res, "Samsun Altın", {
+    g: "https://samsunaltinrafineri.com/1-gr-24-ayar-sar-gram-altin-1-gr-sar-995",
+    c: "https://samsunaltinrafineri.com/ceyrek-altin-darphane-yeni-tarihli-y-t-s-cyrk-s",
+    a: null
+}, 'samsun'));
 // server.js içindeki endpoint
 app.get('/api/gencay', (req, res) => scrapeTriple(res, "Gencay Gold", {
     g: "https://gencaygold.com/urun/1-gr-24-ayar-gencay-gram-altin/",
     c: "https://gencaygold.com/urun/ceyrek-altin-darphane-eski-tarihli/",
     a: "https://gencaygold.com/urun/oluklu-ajda-bilezik-22-ayar-15-gram/"
 }, 'gencay'));
+
+app.get('/api/gramal', (req, res) => scrapeTriple(res, "Gramal", {
+    g: "https://www.gramal.com.tr/bir-gram-24-ayar-kulce-altin",
+    c: "https://www.gramal.com.tr/ceyrek-altin-yeni-tarihli",
+    a: "https://www.gramal.com.tr/u/243/15-gram-22-ayar-oluklu-ajda-bilezik"
+}, 'gramal'));
+
+app.get('/api/ahlatci', (req, res) => scrapeTriple(res, "Ahlatcı", {
+    g: "https://www.ahlatcistore.com.tr/urun/24-ayar-1g-altin",
+    c: "https://www.ahlatcistore.com.tr/urun/sarrafiye-ceyrek-altin-yeni-tarihli",
+    a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
+}, 'ahlatci'));
 
 // Diğer firmalar (Şu anlık sadece gram linkleri var, onları da tekli scrape edebiliriz)
 const singleScrape = (slug, name, url) => {
@@ -143,9 +147,7 @@ const singleScrape = (slug, name, url) => {
     });
 };
 
-singleScrape('ahlatci', 'Ahlatcı', 'https://www.ahlatcistore.com.tr/urun/24-ayar-1g-altin');
-singleScrape('gramal', 'Gramal', 'https://www.gramal.com.tr/1-gr-24-ayar-kulce-altin-995-0-isgold');
+
 singleScrape('altindukkani', 'Altın Dükkanı', 'https://www.altindukkani.com.tr/isgold-1-gram-altin-24-ayar-0995-kulce-altin');
-singleScrape('samsun', 'Samsun Altın', 'https://www.samsungold.com.tr/urun/1-gr-24-ayar-gram-altin');
 
 app.listen(4000, () => console.log("🚀 Server 4000 portunda hazır!"));

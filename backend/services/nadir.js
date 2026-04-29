@@ -1,26 +1,24 @@
-const cheerio = require('cheerio');
-
-module.exports = (html, cleanPrice) => {
-    const $ = cheerio.load(html);
-    let results = {
-        gram: { n: "-", h: "-" },
-        ceyrek: { n: "-", h: "-" },
-        ajda: { n: "-", h: "-" }
+const getPrice = async (url) => {
+    const page = await browser.newPage();
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 20000 });
+    
+    // Fiyat elementinin gelmesini bekle
+    try {
+        await page.waitForSelector('.product-price-box', { timeout: 10000 });
+    } catch(e) {}
+    
+    const prices = await page.evaluate(() => {
+    // Tüm text içeriğini döndür
+    const allText = document.body.innerText;
+    const priceMatches = allText.match(/[\d]{1,3}(?:\.[\d]{3})*,[\d]{2}/g);
+    return { 
+        raw: priceMatches ? priceMatches.slice(0, 5) : [],
+        boxes: document.querySelectorAll('.product-price-box').length,
+        tobias: document.querySelectorAll('.font-tobias').length
     };
-
-    // Nadir'in fiyat listesi tablosundaki satırları geziyoruz
-    $("tr").each((i, el) => {
-        const rowText = $(el).text();
-        
-        if (rowText.includes("1 gr Altın (995)")) {
-            results.gram.n = cleanPrice($(el).find("td").eq(2).text()); // Alış
-            results.gram.h = cleanPrice($(el).find("td").eq(3).text()); // Satış
-        }
-        if (rowText.includes("Yeni Çeyrek Altın")) {
-            results.ceyrek.n = cleanPrice($(el).find("td").eq(2).text());
-            results.ceyrek.h = cleanPrice($(el).find("td").eq(3).text());
-        }
-    });
-
-    return results;
+});
+console.log('NADIR DEBUG:', JSON.stringify(prices));
+    
+    await page.close();
+    return prices;
 };

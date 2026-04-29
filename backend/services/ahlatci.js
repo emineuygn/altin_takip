@@ -3,12 +3,12 @@ const cheerio = require('cheerio');
 module.exports = (html, cleanPrice) => {
     const $ = cheerio.load(html);
     
-    // Ahlatcı genellikle bu classları kullanır
-    const nakitText = $(".product-price .discounted").text();
-    const kartText = $(".product-price .original").text();
+    const prices = $('p.text-\\[18px\\]');
+    const normal = cleanPrice(prices.eq(0).text());
+    const havale = cleanPrice(prices.eq(1).text());
 
     return {
-        n: cleanPrice(nakitText),
-        h: cleanPrice(kartText)
+        n: normal,
+        h: havale
     };
 };

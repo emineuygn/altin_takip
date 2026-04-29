@@ -89,8 +89,8 @@ export default function GoldTerminal() {
         {/* HEADER: Senin Markan ve İsim Bilgin */}
         <header className="p-6 border-b border-zinc-900 flex flex-col md:flex-row justify-between items-center bg-[#080808] gap-4">
           <div>
-            <h1 className="text-2xl font-black text-yellow-500 italic uppercase tracking-tighter">ALTIN_TAKIP_V1</h1>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Developed by Emine Uygun</p>
+            <h1 className="text-2xl font-black text-yellow-500 italic uppercase tracking-tighter">ALTIN_TAKIP</h1>
+            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">.  </p>
           </div>
           <div className="bg-zinc-900/50 p-2 px-4 rounded border border-zinc-800 text-center">
             <p className="text-[9px] text-zinc-600 font-black uppercase">Son Veri Girişi</p>
