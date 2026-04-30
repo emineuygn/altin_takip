@@ -1,17 +1,23 @@
 const cheerio = require('cheerio');
-
 module.exports = (html, cleanPrice) => {
     const $ = cheerio.load(html);
-    
-    try {
-        const jsonLd = $('script[type="application/ld+json"]').html();
-        if (jsonLd) {
-            const data = JSON.parse(jsonLd);
-            const price = parseFloat(data.offers?.price || data.price || 0);
-            if (price > 0) return { n: price, h: price };
-        }
-    } catch(e) {}
+    const rows = $('tbody.text-center tr');
+    let normal = "-";
+    let havale = "-";
 
-    const fiyat = cleanPrice($('.summary .price .woocommerce-Price-amount bdi').first().text());
-    return { n: fiyat, h: fiyat };
+    rows.each((i, el) => {
+        const tds = $(el).find('td');
+        if (tds.length >= 2 && i === 0) {
+            const n = cleanPrice(tds.eq(0).text());
+
+            // td[1] raw HTML'den sadece <br>'dan önceki ilk fiyatı regex ile çek
+            const rawHtml = tds.eq(1).html() || "";
+            const beforeBr = rawHtml.split('<br>')[0]; // <br>'dan öncesi
+            const h = cleanPrice(beforeBr);
+
+            normal = n;
+            havale = h;
+        }
+    });
+    return { n: normal, h: havale };
 };
