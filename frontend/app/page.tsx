@@ -15,22 +15,76 @@ interface StoreData {
   status: string;
 }
 
+// Sıralama listesi
+const orderList = [
+  "Altın Anne",
+  "Ahlatcı",
+  "Gencay Gold",
+  "Genç Altın",
+  "Gramal",
+  "Samsun Altın",
+  "Topaloğlu",
+  "Aga Külçe",
+  "Rima Gold",
+  "Altın Dükkanı",
+  "Nadir Gold"
+];
+
+const formatPrice = (val: string | number | undefined): string => {
+  if (val === undefined || val === null || val === "-") return "-";
+  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/\./g, '').replace(',', '.'));
+  if (isNaN(num) || num === 0) return "-";
+  return num.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 export default function GoldTerminal() {
   const [stores, setStores] = useState<StoreData[]>([]);
   const [lastUpdate, setLastUpdate] = useState<string>("--:--:--");
 
   const slugs = useMemo(() => [
-    'altinanne', 'nadir', 'ahlatci', 'gramal', 'rima', 
-    'aga', 'altindukkani', 'topaloglu', 'gencaltin', 'gencay', 'samsun'
+    'altinanne', 'ahlatci', 'gencay', 'gencaltin', 'gramal', 
+    'samsun', 'topaloglu', 'aga', 'rima', 'altindukkani', 'nadir'
   ], []);
 
   const parseVal = (val: string | number | undefined): number => {
-    if (val === undefined || val === null) return 0;
+    if (val === undefined || val === null || val === "-") return 0;
     if (typeof val === 'number') return val;
     const cleaned = String(val).replace(/\./g, '').replace(',', '.');
     const parsed = parseFloat(cleaned);
     return isNaN(parsed) ? 0 : parsed;
   };
+
+  // 🔥 EN DÜŞÜK HESAPLAMA
+  const getLowestMap = (type: 'gram' | 'ceyrek' | 'ajda') => {
+    let lowest = Infinity;
+    let winners: string[] = [];
+
+    stores.forEach((store) => {
+      const data = store[type];
+      if (!data) return;
+
+      const n = parseVal(data.n);
+      const h = parseVal(data.h);
+
+      const values = [n, h].filter(v => v > 0);
+      if (values.length === 0) return;
+
+      const minVal = Math.min(...values);
+
+      if (minVal < lowest) {
+        lowest = minVal;
+        winners = [store.name];
+      } else if (minVal === lowest) {
+        winners.push(store.name);
+      }
+    });
+
+    return winners;
+  };
+
+  const lowestGram = getLowestMap('gram');
+  const lowestCeyrek = getLowestMap('ceyrek');
+  const lowestAjda = getLowestMap('ajda');
 
   useEffect(() => {
     const fetchAllSites = async () => {
@@ -41,7 +95,6 @@ export default function GoldTerminal() {
           });
           if (!res.ok) continue;
           const data: StoreData = await res.json();
-
           setStores((prev) => {
             const index = prev.findIndex((s) => s.name === data.name);
             if (index > -1) {
@@ -51,139 +104,121 @@ export default function GoldTerminal() {
             }
             return [...prev, data];
           });
-          
           setLastUpdate(new Date().toLocaleTimeString('tr-TR'));
         } catch (err) {
           console.error(`${slug} verisi alınamadı:`, err);
         }
       }
     };
-
     fetchAllSites();
     const interval = setInterval(fetchAllSites, 60000);
     return () => clearInterval(interval);
   }, [slugs]);
 
   const altinAnne = stores.find(s => s.name === "Altın Anne");
-  
-  const minPrices = useMemo(() => {
-    const mins = { gram: Infinity, ceyrek: Infinity, ajda: Infinity };
-    stores.forEach(s => {
-      const g = parseVal(s.gram?.h);
-      const c = parseVal(s.ceyrek?.h);
-      const a = parseVal(s.ajda?.h);
-      if (g > 0 && g < mins.gram) mins.gram = g;
-      if (c > 0 && c < mins.ceyrek) mins.ceyrek = c;
-      if (a > 0 && a < mins.ajda) mins.ajda = a;
+
+  const sortedStores = useMemo(() => {
+    return [...stores].sort((a, b) => {
+      const indexA = orderList.indexOf(a.name);
+      const indexB = orderList.indexOf(b.name);
+      if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+      if (indexA !== -1) return -1;
+      if (indexB !== -1) return 1;
+      return a.name.localeCompare(b.name);
     });
-    return mins;
   }, [stores]);
 
   if (stores.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#020202] flex items-center justify-center font-mono text-yellow-500 animate-pulse uppercase tracking-[0.5em]">
-        SİNYAL_BEKLENİYOR...
-      </div>
-    );
+    return <div className="min-h-screen bg-white flex items-center justify-center font-sans text-gray-500 italic uppercase tracking-widest text-xs">Yükleniyor...</div>;
   }
 
   return (
-    <main className="min-h-screen bg-[#020202] text-white font-mono p-4 sm:p-10">
-      <div className="max-w-[1600px] mx-auto border border-zinc-900 bg-[#050505] rounded-xl overflow-hidden shadow-2xl">
+    <main className="min-h-screen bg-white text-black font-sans p-4 sm:p-10">
+      <div className="max-w-[1400px] mx-auto border border-gray-200 rounded-lg overflow-hidden shadow-sm">
         
-        <header className="p-6 border-b border-zinc-900 flex flex-col md:flex-row justify-between items-center bg-[#080808] gap-4">
-          <div>
-            <h1 className="text-2xl font-black text-yellow-500 italic uppercase tracking-tighter">ALTIN_TAKIP</h1>
-            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-1">Sistem Aktif</p>
-          </div>
-          <div className="bg-zinc-900/50 p-2 px-4 rounded border border-zinc-800 text-center">
-            <p className="text-[9px] text-zinc-600 font-black uppercase">Son Veri Girişi</p>
-            <p className="text-sm font-bold text-zinc-300">{lastUpdate}</p>
-          </div>
+        <header className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h1 className="text-xl font-bold tracking-tight text-black italic">Analiz Terminali</h1>
+          <span className="text-xs font-medium text-gray-400">Güncelleme: {lastUpdate}</span>
         </header>
 
-        <div className="p-2 overflow-x-auto">
-          <table className="w-full border-collapse min-w-[1200px]">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="text-zinc-600 uppercase font-black tracking-widest border-b border-zinc-900">
-                <th className="p-4 text-left text-[14px]">Kurum</th>
-                <th className="p-4 text-center text-yellow-500 text-[30px] tracking-tighter">1 GR (24K)</th>
-                <th className="p-4 text-center text-orange-500 text-[30px] tracking-tighter">ÇEYREK</th>
-                <th className="p-4 text-center text-blue-400 text-[30px] tracking-tighter">15 GR AJDA</th>
-                <th className="p-4 text-right text-[14px]">Durum</th>
+              <tr className="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-widest border-b border-gray-200">
+                <th className="p-4 text-left font-bold border-r border-gray-200">Firma Adı</th>
+                <th className="p-4 text-center border-r border-gray-100">1 GR Fark (%)</th>
+                <th className="p-4 text-center border-r border-gray-100">Çeyrek Fark (%)</th>
+                <th className="p-4 text-center">15 GR Ajda Fark (%)</th>
               </tr>
             </thead>
             
-            <tbody className="divide-y divide-zinc-900/50">
-              {[...stores].sort((a, b) => a.name.localeCompare(b.name)).map((item) => (
-                <tr key={item.name} className="hover:bg-zinc-900/30 transition-colors">
-                  <td className="p-4 font-bold text-xs text-zinc-300 uppercase border-r border-zinc-900/50">
-                    {item.name}
-                  </td>
+            <tbody className="divide-y divide-gray-100">
+              {sortedStores.map((item) => {
+                const isAltinAnne = item.name === "Altın Anne";
 
-                  {[item.gram, item.ceyrek, item.ajda].map((product, idx) => {
-                    const safeP = product || { n: "-", h: "-" };
-                    const currentVal = parseVal(safeP.h);
+                return (
+                  <tr key={item.name} className={`${isAltinAnne ? 'bg-yellow-400' : 'bg-white hover:bg-gray-50'}`}>
+                    <td className="p-4 border-r border-gray-100 font-bold uppercase italic">
+                      {item.name}
+                    </td>
 
-                    let refVal = 0;
-                    if (idx === 0) refVal = parseVal(altinAnne?.gram?.h);
-                    if (idx === 1) refVal = parseVal(altinAnne?.ceyrek?.h);
-                    if (idx === 2) refVal = parseVal(altinAnne?.ajda?.h);
+                    {[
+                      { mine: item.gram, ref: altinAnne?.gram, type: 'gram' },
+                      { mine: item.ceyrek, ref: altinAnne?.ceyrek, type: 'ceyrek' },
+                      { mine: item.ajda, ref: altinAnne?.ajda, type: 'ajda' }
+                    ].map((pair, idx) => {
 
-                    const diff = (item.name !== "Altın Anne" && currentVal > 0 && refVal > 0) ? (currentVal - refVal) : null;
+                      const isLowest =
+                        (pair.type === 'gram' && lowestGram.includes(item.name)) ||
+                        (pair.type === 'ceyrek' && lowestCeyrek.includes(item.name)) ||
+                        (pair.type === 'ajda' && lowestAjda.includes(item.name));
 
-                    const isMin = 
-                      (idx === 0 && currentVal === minPrices.gram && currentVal !== Infinity) ||
-                      (idx === 1 && currentVal === minPrices.ceyrek && currentVal !== Infinity) ||
-                      (idx === 2 && currentVal === minPrices.ajda && currentVal !== Infinity);
-                    
-                    return (
-                      <td key={idx} className={`p-4 border-r border-zinc-900/50 transition-all duration-300 relative ${
-                        isMin ? 'border-[4px] border-[#ccff00] z-10 shadow-[0_0_30px_rgba(204,255,0,0.6)] animate-[pulse_1s_infinite]' : ''
-                      }`}>
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex flex-col items-center">
-                            <span className={`text-[8px] uppercase tracking-widest ${isMin ? 'text-[#ccff00] font-black' : 'text-zinc-600'}`}>Normal</span>
-                            <span className={`text-lg font-black tabular-nums ${
-                              isMin ? 'text-[#ccff00] scale-110' : 
-                              idx === 0 ? 'text-[#00ff00]' : idx === 1 ? 'text-orange-500' : 'text-blue-400'
-                            }`}>
-                              {safeP.n} {safeP.n !== "-" ? "₺" : ""}
-                            </span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                            <span className={`text-[8px] uppercase tracking-widest ${isMin ? 'text-[#ccff00] font-black' : 'text-zinc-600'}`}>Havale</span>
-                            <span className={`text-[10px] font-black tabular-nums ${isMin ? 'text-[#ccff00] scale-110' : 'text-zinc-400'}`}>
-                              {safeP.h} {safeP.h !== "-" ? "₺" : ""}
-                            </span>
-                            
-                            {/* FARK GÖSTERGESİ */}
-                            {diff !== null && (
-                              <span className={`text-[22px] font-black mt-2 px-3 py-0.5 rounded shadow-[0_0_15px_rgba(0,0,0,0.7)] animate-pulse border-2 transition-all ${
-                                diff > 0 
-                                  ? 'text-red-500 bg-red-500/20 border-red-500/40' 
-                                  : diff < 0 
-                                    ? 'text-emerald-400 bg-emerald-400/20 border-emerald-400/40' 
-                                    : 'text-zinc-500 border-transparent'
-                              }`}>
-                                {diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2)} ₺
+                      const myN = parseVal(pair.mine?.n);
+                      const myH = parseVal(pair.mine?.h);
+                      const refN = parseVal(pair.ref?.n);
+                      const refH = parseVal(pair.ref?.h);
+
+                      const diffN = (myN > 0 && refN > 0) ? (myN - refN) : null;
+                      const diffH = (myH > 0 && refH > 0) ? (myH - refH) : null;
+                      const percN = (diffN !== null && refN > 0) ? (diffN / refN) * 100 : null;
+                      const percH = (diffH !== null && refH > 0) ? (diffH / refH) * 100 : null;
+
+                      return (
+                        <td key={idx} className="p-4 border-r border-gray-100">
+                          <div className={`flex justify-around items-center gap-2 text-center ${isLowest ? 'neon-box' : ''}`}>
+                            <div className="flex flex-col">
+                              <span className={`text-[12px] font-bold mb-1 ${isAltinAnne ? 'text-black/50' : 'text-gray-400'}`}>N</span>
+                              <span className={`text-[20px] font-black leading-none ${isAltinAnne ? 'text-black' : ''}`}>
+                                {isAltinAnne 
+                                  ? formatPrice(pair.mine?.n)
+                                  : (diffN !== null ? `${diffN > 0 ? '+' : ''}${diffN.toFixed(1)}` : '-')}
                               </span>
-                            )}
+                              {!isAltinAnne && (
+                                <span className="text-[15px] font-medium opacity-50">
+                                  {percN !== null ? `%${percN.toFixed(2)}` : ''}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className={`text-[12px] font-bold mb-1 ${isAltinAnne ? 'text-black/50' : 'text-gray-400'}`}>H</span>
+                              <span className={`text-[20px] font-black leading-none ${isAltinAnne ? 'text-black' : ''}`}>
+                                {isAltinAnne 
+                                  ? formatPrice(pair.mine?.h)
+                                  : (diffH !== null ? `${diffH > 0 ? '+' : ''}${diffH.toFixed(1)}` : '-')}
+                              </span>
+                              {!isAltinAnne && (
+                                <span className="text-[15px] font-medium opacity-50">
+                                  {percH !== null ? `%${percH.toFixed(2)}` : ''}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                    );
-                  })}
-
-                  <td className="p-4 text-right">
-                    <span className={`text-[8px] px-2 py-1 rounded font-black border uppercase ${
-                      item.status === 'online' ? 'bg-green-950/20 text-green-500 border-green-900' : 'bg-red-950/20 text-red-500 border-red-900'
-                    }`}>
-                      {item.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

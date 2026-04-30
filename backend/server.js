@@ -20,16 +20,22 @@ const HEADERS = {
 
 const cleanPrice = (text) => {
     if (!text || typeof text !== 'string') return "-";
-    let cleaned = text.replace(/[^\d.,]/g, '').trim();
-    if (!cleaned) return "-";
-    const price = parseFloat(cleaned.replace(/\./g, "").replace(",", "."));
+    const trimmed = text.trim();
+    // Türkçe format kontrolü: son 3 karakter virgül+2 rakam mı?
+    const trMatch = trimmed.match(/^[\d.]+,\d{2}$/);
+    if (trMatch) {
+        const price = parseFloat(trimmed.replace(/\./g, '').replace(',', '.'));
+        return isNaN(price) ? "-" : price;
+    }
+    // Normal format
+    const cleaned = trimmed.replace(/[^\d.,]/g, '');
+    const price = parseFloat(cleaned.replace(/\./g, '').replace(',', '.'));
     return isNaN(price) ? "-" : price;
 };
 
 // Parser'lar (Services içindeki dosyaların isimleriyle birebir aynı olmalı)
 const parsers = {
     altinanne: require('./services/altinanne'),
-    aga: require('./services/aga'),
     topaloglu: require('./services/topaloglu'),
     gencaltin: require('./services/gencaltin'),
     nadir: require('./services/nadir'),
@@ -89,11 +95,42 @@ app.get('/api/nadir', async (req, res) => {
         res.json({ name: "Nadir Gold", status: "offline" });
     }
 });
-app.get('/api/aga', (req, res) => scrapeTriple(res, "Aga Külçe", {
-    g: "https://www.agakulche.com/agakulche-1-gr-995-24-ayar-amr-kulce-altin",
-    c: "https://www.agakulche.com/ziynet-ceyrek-altin-yeni-2024-kulplu",
-    a: "https://www.agakulche.com/15-gr-22-ayar-ajda-bilezik"
-}, 'aga'));
+app.get('/api/aga', async (req, res) => {
+    try {
+        const urls = {
+            g: "https://www.agakulche.com/agakulche-1-gr-995-24-ayar-amr-kulce-altin",
+            c: "https://www.agakulche.com/ziynet-ceyrek-altin-yeni-2024-kulplu",
+            a: "https://www.agakulche.com/15-gr-22-ayar-ajda-bilezik"
+        };
+
+        const fetchPrice = async (url) => {
+            if (!url) return { n: "-", h: "-" };
+            try {
+                const { data } = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
+                const cheerio = require('cheerio');
+                const $ = cheerio.load(data);
+                const raw = $('.last-price').first().text().replace(/\s/g, '');
+                const m = raw.match(/[\d.]+,\d{2}/);
+                if (!m) return { n: "-", h: "-" };
+                const fiyat = parseFloat(m[0].replace(/\./g, '').replace(',', '.'));
+                return { n: fiyat, h: fiyat };
+            } catch(e) {
+                return { n: "-", h: "-" };
+            }
+        };
+
+        const [gram, ceyrek, ajda] = await Promise.all([
+            fetchPrice(urls.g),
+            fetchPrice(urls.c),
+            fetchPrice(urls.a)
+        ]);
+
+        res.json({ name: "Aga Külçe", gram, ceyrek, ajda, status: "online" });
+    } catch(e) {
+        res.json({ name: "Aga Külçe", status: "offline" });
+    }
+});
+
 
 app.get('/api/topaloglu', (req, res) => scrapeTriple(res, "Topaloğlu", {
     g: "https://www.etopaloglualtin.com/urun/1-gram-24-ayar-iar-gramaltin",
