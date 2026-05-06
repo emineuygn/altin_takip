@@ -79,12 +79,60 @@ const scrapeTriple = async (res, storeName, urls, parserKey) => {
 
 // --- ENDPOINTS ---
 
-app.get('/api/altinanne', (req, res) => scrapeTriple(res, "Altın Anne", {
-    g: "https://altinanne.com/urun/1-gr-24-ayar-ard-gram-altin-1-g-adr-995",
-    c: "https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk",
-    a:  "https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd" 
-}, 'altinanne'));
+app.get('/api/altinanne', async (req, res) => {
+    try {
+        const parser = parsers['altinanne'];
+        
+        const gramUrls = [
+            "https://altinanne.com/urun/1-gr-24-ayar-ard-gram-altin-1-g-adr-995",
+            "https://altinanne.com/urun/1-gr-24-ayar-gar-gram-altin-alt-an-gar-1gr-995",
+            "https://altinanne.com/urun/1-gr-24-ayar-rekor-gram-altin-1-g-rkr-995-alt",
+            "https://altinanne.com/urun/24-ayar-995-milyem-nadir-gold-1-gram-altin-1-gr-ndr-995-a",
+            "https://altinanne.com/urun/1-gr-24-ayar-iar-gram-altin-1-g-iar-995"
+        ];
 
+        const fetchUrl = async (url) => {
+            try {
+                const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
+                return response.data;
+            } catch(e) { return null; }
+        };
+
+        // Tüm gram URL'lerini çek, en düşük fiyatlıyı bul
+        const gramResults = await Promise.all(gramUrls.map(async (url) => {
+            const html = await fetchUrl(url);
+            if (!html) return null;
+            return parser(html, cleanPrice);
+        }));
+
+        let bestGram = { n: "-", h: "-" };
+        let lowestPrice = Infinity;
+        gramResults.forEach(result => {
+            if (!result) return;
+            const price = typeof result.h === 'number' ? result.h : (typeof result.n === 'number' ? result.n : Infinity);
+            if (price > 0 && price < lowestPrice) {
+                lowestPrice = price;
+                bestGram = result;
+            }
+        });
+
+        // Çeyrek ve ajda tek URL'den
+        const [cData, aData] = await Promise.all([
+            fetchUrl("https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk"),
+            fetchUrl("https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd")
+        ]);
+
+        res.json({
+            name: "Altın Anne",
+            gram: bestGram,
+            ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
+            ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
+            status: "online"
+        });
+    } catch(e) {
+        res.json({ name: "Altın Anne", status: "offline" });
+    }
+});
 // Nadir Gold için doğrudan fiyat servisinden veri çekiyoruz (HTML parse etmekle uğraşmıyoruz
 app.get('/api/nadir', async (req, res) => {
     try {
