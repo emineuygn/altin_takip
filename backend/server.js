@@ -181,11 +181,41 @@ app.get('/api/aga', async (req, res) => {
 });
 
 
-app.get('/api/topaloglu', (req, res) => scrapeTriple(res, "Topaloğlu", {
-    g: "https://www.etopaloglualtin.com/urun/1-gram-24-ayar-iar-gramaltin",
-    c: "https://www.etopaloglualtin.com/urun/ceyrek-altin",
-    a: "https://www.etopaloglualtin.com/urun/15-gr-22-ayar-ajda-bilezik"
-}, 'topaloglu'));
+app.get('/api/topaloglu', async (req, res) => {
+    try {
+        const parser = parsers['topaloglu'];
+        
+        const customHeaders = {
+            ...HEADERS,
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+            'Referer': 'https://www.google.com/',
+        };
+
+        const fetchUrl = async (url) => {
+            if (!url) return null;
+            try {
+                const response = await axios.get(url, { headers: customHeaders, httpsAgent: agent, timeout: 10000 });
+                return response.data;
+            } catch(e) { return null; }
+        };
+
+        const [gData, cData, aData] = await Promise.all([
+            fetchUrl("https://www.etopaloglualtin.com/urun/1-gram-24-ayar-iar-gramaltin"),
+            fetchUrl("https://www.etopaloglualtin.com/urun/ceyrek-altin"),
+            fetchUrl("https://www.etopaloglualtin.com/urun/15-gr-22-ayar-ajda-bilezik")
+        ]);
+
+        res.json({
+            name: "Topaloğlu",
+            gram: gData ? parser(gData, cleanPrice) : { n: "-", h: "-" },
+            ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
+            ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
+            status: "online"
+        });
+    } catch(e) {
+        res.json({ name: "Topaloğlu", status: "offline" });
+    }
+});
 
 app.get('/api/gencaltin', (req, res) => scrapeTriple(res, "Genç Altın", {
     g: "https://gencaltin.com/1-gram-24-ayar-kulce-altin",
