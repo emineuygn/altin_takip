@@ -16,7 +16,7 @@ interface StoreData {
 
 const orderList = [
   "Altın Anne", "Ahlatcı", "Gencay Gold", "Genç Altın", "Gramal",
-  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Rima Gold", "Anadolum Altın","Altın Dükkanı", "Nadir Gold"
+  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın","Altın Dükkanı", "Nadir Gold", "Rima Gold"
 ];
 
 const formatPrice = (val: string | number | undefined): string => {
