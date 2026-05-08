@@ -16,7 +16,7 @@ interface StoreData {
 
 const orderList = [
   "Altın Anne", "Ahlatcı", "Gencay Gold", "Genç Altın", "Gramal",
-  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Rima Gold", "Altın Dükkanı", "Nadir Gold"
+  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Rima Gold", "Anadolum Altın","Altın Dükkanı", "Nadir Gold"
 ];
 
 const formatPrice = (val: string | number | undefined): string => {
@@ -40,7 +40,7 @@ export default function GoldTerminal() {
 
   const slugs = useMemo(() => [
     'altinanne', 'ahlatci', 'gencay', 'gencaltin', 'gramal',
-    'samsun', 'topaloglu', 'aga', 'rima', 'altindukkani', 'nadir'
+    'samsun', 'topaloglu', 'aga', 'rima', 'anadolum', 'altindukkani', 'nadir'
   ], []);
 
   const parseValLocal = parseVal;
@@ -96,7 +96,6 @@ export default function GoldTerminal() {
   }, [slugs]);
 
   const altinAnne = stores.find(s => s.name === "Altın Anne");
-
   const sortedStores = useMemo(() => {
     return [...stores].sort((a, b) => {
       const indexA = orderList.indexOf(a.name);

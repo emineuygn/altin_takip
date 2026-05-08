@@ -44,7 +44,8 @@ const parsers = {
     rima: require('./services/rima'),
     altindukkani: require('./services/altindukkani'),
     gencay: require('./services/gencay'),
-    samsun: require('./services/samsun')
+    samsun: require('./services/samsun'),
+    anadolum: require('./services/anadolum')
 };
 
 // Ortak Scrape Fonksiyonu
@@ -220,6 +221,44 @@ app.get('/api/ahlatci', (req, res) => scrapeTriple(res, "Ahlatcı", {
     c: "https://www.ahlatcistore.com.tr/urun/sarrafiye-ceyrek-altin-yeni-tarihli",
     a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
 }, 'ahlatci'));
+// parsers objesine ekle
+anadolum: require('./services/anadolum'),
+
+// endpoint ekle
+app.get('/api/anadolum', async (req, res) => {
+    try {
+        const parser = parsers['anadolum'];
+        
+        const fetchUrl = async (url) => {
+            if (!url) return null;
+            try {
+                const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 10000 });
+                return response.data;
+            } catch(e) { 
+                console.error('fetchUrl hata:', e.message);
+                return null; 
+            }
+        };
+
+        const [gData, cData] = await Promise.all([
+            fetchUrl("https://anadolumaltin.com/urun/ozbag-1-gr-kulce-altin/"),
+            fetchUrl("https://anadolumaltin.com/urun/1-adet-eski-tarihli-ceyrek-altin/")
+        ]);
+
+        console.log('gData geldi mi:', !!gData, 'cData geldi mi:', !!cData);
+
+        res.json({
+            name: "Anadolum Altın",
+            gram: gData ? parser(gData, cleanPrice) : { n: "-", h: "-" },
+            ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
+            ajda: { n: "-", h: "-" },
+            status: "online"
+        });
+    } catch(e) {
+        console.error('anadolum hata:', e.message);
+        res.json({ name: "Anadolum Altın", status: "offline" });
+    }
+});
 
 // Diğer firmalar (Şu anlık sadece gram linkleri var, onları da tekli scrape edebiliriz)
 const singleScrape = (slug, name, url) => {
