@@ -251,8 +251,6 @@ app.get('/api/ahlatci', (req, res) => scrapeTriple(res, "Ahlatcı", {
     c: "https://www.ahlatcistore.com.tr/urun/sarrafiye-ceyrek-altin-yeni-tarihli",
     a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
 }, 'ahlatci'));
-// parsers objesine ekle
-anadolum: require('./services/anadolum'),
 
 // endpoint ekle
 app.get('/api/anadolum', async (req, res) => {
