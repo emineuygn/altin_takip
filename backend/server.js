@@ -4,7 +4,15 @@ const cors = require('cors');
 const https = require('https');
 
 const app = express();
+
 app.use(cors());
+
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "*");
+    next();
+});
+
 const agent = new https.Agent({ rejectUnauthorized: false });
 
 const HEADERS = {
