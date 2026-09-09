@@ -92,16 +92,11 @@ app.get('/api/altinanne', async (req, res) => {
             "https://altinanne.com/urun/1-gr-24-ayar-iar-gram-altin-1-g-iar-995"
         ];
 
-        const debugLog = [];
         const fetchUrl = async (url) => {
             try {
                 const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
-                debugLog.push({ url, status: response.status, len: response.data?.length });
                 return response.data;
-            } catch(e) {
-                debugLog.push({ url, error: e.message, status: e.response?.status });
-                return null;
-            }
+            } catch(e) { return null; }
         };
 
         // Tüm gram URL'lerini çek, en düşük fiyatlıyı bul
@@ -133,11 +128,10 @@ app.get('/api/altinanne', async (req, res) => {
             gram: bestGram,
             ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
             ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
-            status: "online",
-            ...(req.query.debug ? { debugLog } : {})
+            status: "online"
         });
     } catch(e) {
-        res.json({ name: "Altın Anne", status: "offline", ...(req.query.debug ? { debugError: e.message } : {}) });
+        res.json({ name: "Altın Anne", status: "offline" });
     }
 });
 // Nadir Gold için doğrudan fiyat servisinden veri çekiyoruz (HTML parse etmekle uğraşmıyoruz
