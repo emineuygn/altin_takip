@@ -302,4 +302,5 @@ const singleScrape = (slug, name, url) => {
 
 singleScrape('altindukkani', 'Altın Dükkanı', 'https://www.altindukkani.com.tr/isgold-1-gram-altin-24-ayar-0995-kulce-altin');
 
-app.listen(4000, () => console.log("🚀 Server 4000 portunda hazır!"));
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda hazır!`));
