@@ -252,8 +252,10 @@ const getTopaloglu = async () => {
     }
 };
 
-// anadolumaltin.com'da ürün linkleri değişmiş görünüyor (eski linkler 404);
-// kategori sayfaları da JS ile dolduğu için otomatik güncel link bulunamadı.
+// anadolumaltin.com: eski ürün linkleri 404 veriyor. Gerçek bir tarayıcıyla
+// (Puppeteer, çerez onayı kabul edilmiş, bot-tespiti atlatma denenmiş) kategori,
+// arama ve tekil ürün sayfalarının hepsi "ürün bulunamadı" döndü — sitenin kendi
+// tarafında bir sorun ya da bizim atlatamadığımız bir koruma var. Veri çekemiyoruz.
 const getAnadolum = async () => {
     try {
         const parser = parsers['anadolum'];
@@ -274,15 +276,24 @@ const getAnadolum = async () => {
     }
 };
 
-// Sadece gram linki olan firmalar için tekli çekici.
-const getSingle = (name, url, parserKey) => async () => {
+// altindukkani.com.tr 1 gr külçe satmıyor (en küçüğü 5 gr), önceki 1 gr linki bu
+// yüzden 404 veriyordu ("ürün bulunamadı" kategorisiydi). 5 gr ürününü çekip
+// 5'e bölerek diğer firmalarla karşılaştırılabilir "1 gram eşdeğeri" üretiyoruz.
+const getAltindukkani = async () => {
     try {
-        const html = await fetchHtml(url, { timeout: 10000 });
-        if (!html) return { name, status: "offline" };
-        const prices = parsers[parserKey](html, cleanPrice);
-        return { name, gram: prices, ceyrek: { n: "-", h: "-" }, ajda: { n: "-", h: "-" }, status: "online" };
+        const html = await fetchHtml("https://altindukkani.com.tr/5-gr-altin-kulce", { timeout: 10000 });
+        if (!html) return { name: "Altın Dükkanı", status: "offline" };
+        const per5gr = parsers['altindukkani'](html, cleanPrice);
+        const divide = (v) => typeof v === 'number' ? Math.round((v / 5) * 100) / 100 : "-";
+        return {
+            name: "Altın Dükkanı",
+            gram: { n: divide(per5gr.n), h: divide(per5gr.h) },
+            ceyrek: { n: "-", h: "-" },
+            ajda: { n: "-", h: "-" },
+            status: "online"
+        };
     } catch (e) {
-        return { name, status: "offline" };
+        return { name: "Altın Dükkanı", status: "offline" };
     }
 };
 
@@ -323,8 +334,7 @@ const STORE_FETCHERS = {
         a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
     }, 'ahlatci'),
     anadolum: getAnadolum,
-    // Eski ürün linki (isgold-1-gram-...) 404 veriyordu, güncel linkle değiştirildi.
-    altindukkani: getSingle('Altın Dükkanı', 'https://altindukkani.com.tr/1-gr-altin-kulce', 'altindukkani')
+    altindukkani: getAltindukkani
 };
 
 // --- ENDPOINTS ---
