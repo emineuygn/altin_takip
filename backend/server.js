@@ -150,10 +150,19 @@ const getAltinanne = async () => {
 // onu geri getirmek yerine site düz HTML'e dönerse çalışacak şekilde bırakıyoruz.
 const getNadir = async () => {
     try {
-        const html = await fetchHtml("https://www.nadirgold.com/1-gram-altin-kulce-altin", { timeout: 10000 });
-        if (!html) return { name: "Nadir Gold", status: "offline" };
-        const gram = parsers['nadir'](html, cleanPrice);
-        return { name: "Nadir Gold", gram, ceyrek: { n: "-", h: "-" }, ajda: { n: "-", h: "-" }, status: "online" };
+        const parser = parsers['nadir'];
+        const [gHtml, cHtml] = await Promise.all([
+            fetchHtml("https://www.nadirgold.com/1-gram-altin-kulce-altin", { timeout: 10000 }),
+            fetchHtml("https://www.nadirgold.com/ceyrek-altin", { timeout: 10000 })
+        ]);
+        if (!gHtml) return { name: "Nadir Gold", status: "offline" };
+        return {
+            name: "Nadir Gold",
+            gram: parser(gHtml, cleanPrice),
+            ceyrek: cHtml ? parser(cHtml, cleanPrice) : { n: "-", h: "-" },
+            ajda: { n: "-", h: "-" }, // sitede 15 gr ajda bilezik yok
+            status: "online"
+        };
     } catch (e) {
         return { name: "Nadir Gold", status: "offline" };
     }
