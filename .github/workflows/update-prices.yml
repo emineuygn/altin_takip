@@ -2,8 +2,10 @@ name: Update Gold Prices
 
 on:
   schedule:
-    # Türkiye DST uygulamıyor (yıl boyu UTC+3): 08:00/11:00/14:00 UTC = 11:00/14:00/17:00 TR
-    - cron: '0 8,11,14 * * *'
+    # Türkiye DST uygulamıyor (yıl boyu UTC+3): 08:05/11:05/14:05 UTC ≈ 11:00/14:00/17:00 TR.
+    # Tam saat başı değil, GitHub'ın kendi dokümantasyonu tam saat başlarında
+    # yoğunluktan gecikme/atlama olabileceğini söylüyor, 5 dk kaydırdık.
+    - cron: '5 8,11,14 * * *'
   workflow_dispatch: {}
 
 permissions:
