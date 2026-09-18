@@ -110,7 +110,7 @@ const getAltinanne = async () => {
         ];
 
         const gramResults = await Promise.all(gramUrls.map(async (url) => {
-            const html = await fetchHtml(url, { proxy: true });
+            const html = await fetchHtml(url, { proxy: true, timeout: 25000 });
             if (!html) return null;
             return parser(html, cleanPrice);
         }));
@@ -127,8 +127,8 @@ const getAltinanne = async () => {
         });
 
         const [cData, aData] = await Promise.all([
-            fetchHtml("https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk", { proxy: true }),
-            fetchHtml("https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd", { proxy: true })
+            fetchHtml("https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk", { proxy: true, timeout: 25000 }),
+            fetchHtml("https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd", { proxy: true, timeout: 25000 })
         ]);
 
         return {
@@ -276,7 +276,7 @@ const STORE_FETCHERS = {
         g: "https://rimagold.com.tr/urunler/1-gr-24-ayar-gmr-gram-altin",
         c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-(2026)",
         a: "https://rimagold.com.tr/urunler/22-ayar-15-gram-yuvarlak-ajda-bilezik"
-    }, 'rima', { proxy: true }),
+    }, 'rima', { proxy: true, timeout: 25000 }),
     samsun: () => fetchTriple("Samsun Altın", {
         g: "https://samsunaltinrafineri.com/1-gr-24-ayar-sar-gram-altin-1-gr-sar-995",
         c: "https://samsunaltinrafineri.com/ceyrek-altin-darphane-yeni-tarihli-y-t-s-cyrk-s",
@@ -291,7 +291,7 @@ const STORE_FETCHERS = {
         g: "https://www.gramal.com.tr/bir-gram-24-ayar-kulce-altin",
         c: "https://www.gramal.com.tr/ceyrek-altin-yeni-tarihli",
         a: "https://www.gramal.com.tr/u/243/15-gram-22-ayar-oluklu-ajda-bilezik"
-    }, 'gramal', { proxy: true }),
+    }, 'gramal', { proxy: true, timeout: 25000 }),
     ahlatci: () => fetchTriple("Ahlatcı", {
         g: "https://www.ahlatcistore.com.tr/urun/24-ayar-1g-altin",
         c: "https://www.ahlatcistore.com.tr/urun/sarrafiye-ceyrek-altin-yeni-tarihli",
