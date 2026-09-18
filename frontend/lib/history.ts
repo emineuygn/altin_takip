@@ -19,11 +19,19 @@ export interface HistoryEntry {
 // Backend artık günde 3 kez (11:00/14:00/17:00) GitHub Actions tarafından tetikleniyor
 // ve sonuç bu dosyaya commit'leniyor. Frontend Render'a hiç istek atmadan, doğrudan
 // GitHub'daki bu JSON'u okuyor.
+//
+// raw.githubusercontent.com bir CDN üzerinden servis ediyor ve bu dosyayı beklenenden
+// çok daha uzun (gözlemlenen: birkaç dakikadan fazla) cache'leyebiliyor; güncellemeler
+// gecikmeli görünebiliyordu. Bunun yerine GitHub'ın Contents API'sini kullanıyoruz —
+// aynı veriyi CDN cache'i olmadan, anında güncel döndürüyor.
 export const HISTORY_URL =
-  "https://raw.githubusercontent.com/emineuygn/altin_takip/main/data/history.json";
+  "https://api.github.com/repos/emineuygn/altin_takip/contents/data/history.json?ref=main";
 
 export async function fetchHistory(): Promise<HistoryEntry[]> {
-  const res = await fetch(HISTORY_URL, { cache: "no-store" });
+  const res = await fetch(HISTORY_URL, {
+    cache: "no-store",
+    headers: { Accept: "application/vnd.github.raw+json" },
+  });
   if (!res.ok) return [];
   const data = await res.json();
   return Array.isArray(data) ? data : [];
