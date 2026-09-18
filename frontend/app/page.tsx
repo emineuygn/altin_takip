@@ -1,49 +1,35 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
-
-interface PriceData {
-  n: string | number;
-  h: string | number;
-}
-
-interface StoreData {
-  name: string;
-  gram: PriceData;
-  ceyrek?: PriceData;
-  ajda?: PriceData;
-  status: string;
-}
+import { fetchHistory, formatPrice, parseVal, type StoreSnapshot } from '@/lib/history';
 
 const orderList = [
   "Altın Anne", "Ahlatcı", "Gencay Gold", "Genç Altın", "Gramal",
   "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın","Altın Dükkanı", "Nadir Gold", "Rima Gold"
 ];
 
-const formatPrice = (val: string | number | undefined): string => {
-  if (val === undefined || val === null || val === "-") return "-";
-  const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/\./g, '').replace(',', '.'));
-  if (isNaN(num) || num === 0) return "-";
-  return num.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-};
-
-const parseVal = (val: string | number | undefined): number => {
-  if (val === undefined || val === null || val === "-") return 0;
-  if (typeof val === 'number') return val;
-  const cleaned = String(val).replace(/\./g, '').replace(',', '.');
-  const parsed = parseFloat(cleaned);
-  return isNaN(parsed) ? 0 : parsed;
-};
+// Backend günde 3 kez (11:00/14:00/17:00) güncelleniyor; bu aralık sadece o
+// güncellemelerden birini kaçırmamak için verinin GitHub'dan tekrar okunmasını sağlar.
+const REFRESH_MS = 5 * 60 * 1000;
 
 export default function GoldTerminal() {
-  const [stores, setStores] = useState<StoreData[]>([]);
+  const [stores, setStores] = useState<StoreSnapshot[]>([]);
   const [lastUpdate, setLastUpdate] = useState<string>("--:--:--");
 
-  const slugs = useMemo(() => [
-    'altinanne', 'ahlatci', 'gencay', 'gencaltin', 'gramal',
-    'samsun', 'topaloglu', 'aga', 'rima', 'anadolum', 'altindukkani', 'nadir'
-  ], []);
-
-  const parseValLocal = parseVal;
+  useEffect(() => {
+    const load = async () => {
+      const history = await fetchHistory();
+      if (history.length === 0) return;
+      const latest = history[history.length - 1];
+      setStores(latest.stores);
+      setLastUpdate(new Date(latest.timestamp).toLocaleString('tr-TR', {
+        timeZone: 'Europe/Istanbul',
+        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+      }));
+    };
+    load();
+    const interval = setInterval(load, REFRESH_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   const getLowestMap = (type: 'gram' | 'ceyrek' | 'ajda') => {
     let lowest = Infinity;
@@ -51,8 +37,8 @@ export default function GoldTerminal() {
     stores.forEach((store) => {
       const data = store[type];
       if (!data) return;
-      const n = parseValLocal(data.n);
-      const h = parseValLocal(data.h);
+      const n = parseVal(data.n);
+      const h = parseVal(data.h);
       const values = [n, h].filter(v => v > 0);
       if (values.length === 0) return;
       const minVal = Math.min(...values);
@@ -65,35 +51,6 @@ export default function GoldTerminal() {
   const lowestGram = getLowestMap('gram');
   const lowestCeyrek = getLowestMap('ceyrek');
   const lowestAjda = getLowestMap('ajda');
-
-  useEffect(() => {
-    const fetchAllSites = async () => {
-      for (const slug of slugs) {
-        try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/${slug}`, {
-            cache: 'no-store'
-          });
-          if (!res.ok) continue;
-          const data: StoreData = await res.json();
-          setStores((prev) => {
-            const index = prev.findIndex((s) => s.name === data.name);
-            if (index > -1) {
-              const updated = [...prev];
-              updated[index] = data;
-              return updated;
-            }
-            return [...prev, data];
-          });
-          setLastUpdate(new Date().toLocaleTimeString('tr-TR'));
-        } catch (err) {
-          console.error(`${slug} verisi alınamadı:`, err);
-        }
-      }
-    };
-    fetchAllSites();
-    const interval = setInterval(fetchAllSites, 60000);
-    return () => clearInterval(interval);
-  }, [slugs]);
 
   const altinAnne = stores.find(s => s.name === "Altın Anne");
   const sortedStores = useMemo(() => {

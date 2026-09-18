@@ -2,10 +2,19 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const https = require('https');
+const cheerio = require('cheerio');
 
 const app = express();
 app.use(cors());
 const agent = new https.Agent({ rejectUnauthorized: false });
+
+// Bazı siteler (altinanne, gramal, rima) Render'ın IP'sini bot koruması (403) ile
+// engelliyor. SCRAPER_API_KEY tanımlıysa bu sitelerin istekleri ScraperAPI proxy'si
+// üzerinden atılır; tanımlı değilse doğrudan gidilir (yerelde çalışırken olduğu gibi).
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
+const viaProxy = (url) => SCRAPER_API_KEY
+    ? `http://api.scraperapi.com/?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}`
+    : url;
 
 const HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -48,42 +57,50 @@ const parsers = {
     anadolum: require('./services/anadolum')
 };
 
-// Ortak Scrape Fonksiyonu
-const scrapeTriple = async (res, storeName, urls, parserKey) => {
+// Tek bir URL çekip HTML döndürür (başarısız olursa null). opts.proxy: true ise
+// ScraperAPI üzerinden gider.
+const fetchHtml = async (url, opts = {}) => {
+    if (!url) return null;
     try {
-        const fetchUrl = async (url) => {
-            if (!url) return null;
-            try {
-                const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
-                return response.data;
-            } catch (e) { return null; }
-        };
+        const target = opts.proxy ? viaProxy(url) : url;
+        const response = await axios.get(target, {
+            headers: opts.headers || HEADERS,
+            httpsAgent: agent,
+            timeout: opts.timeout || 5000
+        });
+        return response.data;
+    } catch (e) { return null; }
+};
 
+// Gram/çeyrek/ajda linki olan standart firmalar için ortak veri çekici.
+// res.json çağırmaz, veriyi döndürür (hem tekli route hem /api/all bunu kullanır).
+const fetchTriple = async (storeName, urls, parserKey, opts = {}) => {
+    try {
         const [gData, cData, aData] = await Promise.all([
-            fetchUrl(urls.g),
-            fetchUrl(urls.c),
-            fetchUrl(urls.a)
+            fetchHtml(urls.g, opts),
+            fetchHtml(urls.c, opts),
+            fetchHtml(urls.a, opts)
         ]);
-
         const parser = parsers[parserKey];
-        res.json({
+        return {
             name: storeName,
             gram: gData ? parser(gData, cleanPrice) : { n: "-", h: "-" },
             ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
             ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
             status: "online"
-        });
+        };
     } catch (error) {
-        res.json({ name: storeName, status: "offline" });
+        return { name: storeName, status: "offline" };
     }
 };
 
-// --- ENDPOINTS ---
+// --- Firma bazlı veri çekiciler ---
 
-app.get('/api/altinanne', async (req, res) => {
+const getAltinanne = async () => {
     try {
         const parser = parsers['altinanne'];
-        
+
+        // Aynı ürünün birden fazla varyasyonu var, en düşük fiyatlıyı referans alıyoruz.
         const gramUrls = [
             "https://altinanne.com/urun/1-gr-24-ayar-ard-gram-altin-1-g-adr-995",
             "https://altinanne.com/urun/1-gr-24-ayar-gar-gram-altin-alt-an-gar-1gr-995",
@@ -92,16 +109,8 @@ app.get('/api/altinanne', async (req, res) => {
             "https://altinanne.com/urun/1-gr-24-ayar-iar-gram-altin-1-g-iar-995"
         ];
 
-        const fetchUrl = async (url) => {
-            try {
-                const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
-                return response.data;
-            } catch(e) { return null; }
-        };
-
-        // Tüm gram URL'lerini çek, en düşük fiyatlıyı bul
         const gramResults = await Promise.all(gramUrls.map(async (url) => {
-            const html = await fetchUrl(url);
+            const html = await fetchHtml(url, { proxy: true });
             if (!html) return null;
             return parser(html, cleanPrice);
         }));
@@ -117,190 +126,187 @@ app.get('/api/altinanne', async (req, res) => {
             }
         });
 
-        // Çeyrek ve ajda tek URL'den
         const [cData, aData] = await Promise.all([
-            fetchUrl("https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk"),
-            fetchUrl("https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd")
+            fetchHtml("https://altinanne.com/urun/ceyrek-altin-darphane-eski-tarihli-e-t-s-cyrk", { proxy: true }),
+            fetchHtml("https://altinanne.com/urun/duz-sade-ajda-bilezik-22-ayar-15-gr-15-g-ajd", { proxy: true })
         ]);
 
-        res.json({
+        return {
             name: "Altın Anne",
             gram: bestGram,
             ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
             ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
             status: "online"
-        });
-    } catch(e) {
-        res.json({ name: "Altın Anne", status: "offline" });
-    }
-});
-// Nadir Gold için doğrudan fiyat servisinden veri çekiyoruz (HTML parse etmekle uğraşmıyoruz
-app.get('/api/nadir', async (req, res) => {
-    try {
-        const parser = require('./services/nadir');
-        const prices = await parser();
-        res.json({ name: "Nadir Gold", ...prices, status: "online" });
+        };
     } catch (e) {
-        res.json({ name: "Nadir Gold", status: "offline" });
+        return { name: "Altın Anne", status: "offline" };
     }
-});
-app.get('/api/aga', async (req, res) => {
+};
+
+// nadirgold.com fiyatları JS ile sonradan yüklüyor (statik HTML'de bulunmuyor),
+// bu yüzden şu an gerçek veri çekemiyoruz. Eskiden buradaki kod tanımsız bir
+// Puppeteer `browser` değişkenine referans verip her seferinde patlıyordu;
+// Render'ın ücretsiz planında Puppeteer/Chromium çalıştırmak riskli olduğu için
+// onu geri getirmek yerine site düz HTML'e dönerse çalışacak şekilde bırakıyoruz.
+const getNadir = async () => {
+    try {
+        const html = await fetchHtml("https://www.nadirgold.com/1-gram-altin-kulce-altin", { timeout: 10000 });
+        if (!html) return { name: "Nadir Gold", status: "offline" };
+        const gram = parsers['nadir'](html, cleanPrice);
+        return { name: "Nadir Gold", gram, ceyrek: { n: "-", h: "-" }, ajda: { n: "-", h: "-" }, status: "online" };
+    } catch (e) {
+        return { name: "Nadir Gold", status: "offline" };
+    }
+};
+
+const getAga = async () => {
     try {
         const urls = {
             g: "https://www.agakulche.com/agakulche-1-gr-995-24-ayar-amr-kulce-altin",
-            c: "https://www.agakulche.com/ziynet-ceyrek-altin-yeni-2024-kulplu",
-            a: "https://www.agakulche.com/15-gr-22-ayar-ajda-bilezik"
+            c: "https://www.agakulche.com/ziynet-ceyrek-altin-yeni-2024-kulplu"
+            // 15 gr ajda bilezik artık sitede satışta değil (link 404), o yüzden ajda çekmiyoruz.
         };
 
-        const fetchPrice = async (url) => {
-            if (!url) return { n: "-", h: "-" };
-            try {
-                const { data } = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 5000 });
-                const cheerio = require('cheerio');
-                const $ = cheerio.load(data);
-                const raw = $('.last-price').first().text().replace(/\s/g, '');
-                const m = raw.match(/[\d.]+,\d{2}/);
-                if (!m) return { n: "-", h: "-" };
-                const fiyat = parseFloat(m[0].replace(/\./g, '').replace(',', '.'));
-                return { n: fiyat, h: fiyat };
-            } catch(e) {
-                return { n: "-", h: "-" };
-            }
+        const parsePrice = (html) => {
+            if (!html) return { n: "-", h: "-" };
+            const $ = cheerio.load(html);
+            const raw = $('.last-price').first().text().replace(/\s/g, '');
+            const m = raw.match(/[\d.]+,\d{2}/);
+            if (!m) return { n: "-", h: "-" };
+            const fiyat = parseFloat(m[0].replace(/\./g, '').replace(',', '.'));
+            return { n: fiyat, h: fiyat };
         };
 
-        const [gram, ceyrek, ajda] = await Promise.all([
-            fetchPrice(urls.g),
-            fetchPrice(urls.c),
-            fetchPrice(urls.a)
-        ]);
+        const [gHtml, cHtml] = await Promise.all([fetchHtml(urls.g), fetchHtml(urls.c)]);
 
-        res.json({ name: "Aga Külçe", gram, ceyrek, ajda, status: "online" });
-    } catch(e) {
-        res.json({ name: "Aga Külçe", status: "offline" });
+        return {
+            name: "Aga Külçe",
+            gram: parsePrice(gHtml),
+            ceyrek: parsePrice(cHtml),
+            ajda: { n: "-", h: "-" },
+            status: "online"
+        };
+    } catch (e) {
+        return { name: "Aga Külçe", status: "offline" };
     }
-});
+};
 
-
-app.get('/api/topaloglu', async (req, res) => {
+const getTopaloglu = async () => {
     try {
         const parser = parsers['topaloglu'];
-        
         const customHeaders = {
             ...HEADERS,
             'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
             'Referer': 'https://www.google.com/',
         };
 
-        const fetchUrl = async (url) => {
-            if (!url) return null;
-            try {
-                const response = await axios.get(url, { headers: customHeaders, httpsAgent: agent, timeout: 10000 });
-                return response.data;
-            } catch(e) { return null; }
-        };
-
-        const [gData, cData, aData] = await Promise.all([
-            fetchUrl("https://www.etopaloglualtin.com/urun/1-gram-24-ayar-iar-gramaltin"),
-            fetchUrl("https://www.etopaloglualtin.com/urun/ceyrek-altin"),
-            fetchUrl("https://www.etopaloglualtin.com/urun/15-gr-22-ayar-ajda-bilezik")
+        // Eski ürün linkleri 404 veriyordu (site kataloğu değişmiş), güncel linklerle değiştirildi.
+        const [gData, cData] = await Promise.all([
+            fetchHtml("https://etopaloglualtin.com/1-gram-24-ayar-995-kulce-altin", { headers: customHeaders, timeout: 10000 }),
+            fetchHtml("https://etopaloglualtin.com/eski-ceyrek", { headers: customHeaders, timeout: 10000 })
         ]);
 
-        res.json({
+        return {
             name: "Topaloğlu",
             gram: gData ? parser(gData, cleanPrice) : { n: "-", h: "-" },
             ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
-            ajda: aData ? parser(aData, cleanPrice) : { n: "-", h: "-" },
+            ajda: { n: "-", h: "-" }, // sitede 15 gr ajda bilezik bulunamadı
             status: "online"
-        });
-    } catch(e) {
-        res.json({ name: "Topaloğlu", status: "offline" });
+        };
+    } catch (e) {
+        return { name: "Topaloğlu", status: "offline" };
     }
-});
+};
 
-app.get('/api/gencaltin', (req, res) => scrapeTriple(res, "Genç Altın", {
-    g: "https://gencaltin.com/1-gram-24-ayar-kulce-altin",
-    c: "https://gencaltin.com/ziynet-ceyrek-altin-yeni-tarihli",
-    a: "https://gencaltin.com/15-gr-22-ayar-ajda-bilezik"
-}, 'gencaltin'));
-app.get('/api/rima', (req, res) => scrapeTriple(res, "Rima Gold", {
-    g: "https://rimagold.com.tr/urunler/1-gr-24-ayar-gmr-gram-altin",
-    c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-(2026)",
-    a: "https://rimagold.com.tr/urunler/22-ayar-15-gram-yuvarlak-ajda-bilezik"
-}, 'rima'));
-
-app.get('/api/samsun', (req, res) => scrapeTriple(res, "Samsun Altın", {
-    g: "https://samsunaltinrafineri.com/1-gr-24-ayar-sar-gram-altin-1-gr-sar-995",
-    c: "https://samsunaltinrafineri.com/ceyrek-altin-darphane-yeni-tarihli-y-t-s-cyrk-s",
-    a: null
-}, 'samsun'));
-// server.js içindeki endpoint
-app.get('/api/gencay', (req, res) => scrapeTriple(res, "Gencay Gold", {
-    g: "https://gencaygold.com/urun/1-gr-24-ayar-gencay-gram-altin/",
-    c: "https://gencaygold.com/urun/ceyrek-altin-darphane-eski-tarihli/",
-    a: "https://gencaygold.com/urun/oluklu-ajda-bilezik-22-ayar-15-gram/"
-}, 'gencay'));
-
-app.get('/api/gramal', (req, res) => scrapeTriple(res, "Gramal", {
-    g: "https://www.gramal.com.tr/bir-gram-24-ayar-kulce-altin",
-    c: "https://www.gramal.com.tr/ceyrek-altin-yeni-tarihli",
-    a: "https://www.gramal.com.tr/u/243/15-gram-22-ayar-oluklu-ajda-bilezik"
-}, 'gramal'));
-
-app.get('/api/ahlatci', (req, res) => scrapeTriple(res, "Ahlatcı", {
-    g: "https://www.ahlatcistore.com.tr/urun/24-ayar-1g-altin",
-    c: "https://www.ahlatcistore.com.tr/urun/sarrafiye-ceyrek-altin-yeni-tarihli",
-    a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
-}, 'ahlatci'));
-
-// endpoint ekle
-app.get('/api/anadolum', async (req, res) => {
+// anadolumaltin.com'da ürün linkleri değişmiş görünüyor (eski linkler 404);
+// kategori sayfaları da JS ile dolduğu için otomatik güncel link bulunamadı.
+const getAnadolum = async () => {
     try {
         const parser = parsers['anadolum'];
-        
-        const fetchUrl = async (url) => {
-            if (!url) return null;
-            try {
-                const response = await axios.get(url, { headers: HEADERS, httpsAgent: agent, timeout: 10000 });
-                return response.data;
-            } catch(e) { 
-                console.error('fetchUrl hata:', e.message);
-                return null; 
-            }
-        };
-
         const [gData, cData] = await Promise.all([
-            fetchUrl("https://anadolumaltin.com/urun/ozbag-1-gr-kulce-altin/"),
-            fetchUrl("https://anadolumaltin.com/urun/1-adet-eski-tarihli-ceyrek-altin/")
+            fetchHtml("https://anadolumaltin.com/urun/ozbag-1-gr-kulce-altin/", { timeout: 10000 }),
+            fetchHtml("https://anadolumaltin.com/urun/1-adet-eski-tarihli-ceyrek-altin/", { timeout: 10000 })
         ]);
 
-        console.log('gData geldi mi:', !!gData, 'cData geldi mi:', !!cData);
-
-        res.json({
+        return {
             name: "Anadolum Altın",
             gram: gData ? parser(gData, cleanPrice) : { n: "-", h: "-" },
             ceyrek: cData ? parser(cData, cleanPrice) : { n: "-", h: "-" },
             ajda: { n: "-", h: "-" },
             status: "online"
-        });
-    } catch(e) {
-        console.error('anadolum hata:', e.message);
-        res.json({ name: "Anadolum Altın", status: "offline" });
+        };
+    } catch (e) {
+        return { name: "Anadolum Altın", status: "offline" };
     }
-});
-
-// Diğer firmalar (Şu anlık sadece gram linkleri var, onları da tekli scrape edebiliriz)
-const singleScrape = (slug, name, url) => {
-    app.get(`/api/${slug}`, async (req, res) => {
-        try {
-            const { data } = await axios.get(url, { headers: HEADERS, httpsAgent: agent });
-            const prices = parsers[slug](data, cleanPrice);
-            res.json({ name, gram: prices, ceyrek: {n:"-",h:"-"}, ajda: {n:"-",h:"-"}, status: "online" });
-        } catch (e) { res.json({ name, status: "offline" }); }
-    });
 };
 
+// Sadece gram linki olan firmalar için tekli çekici.
+const getSingle = (name, url, parserKey) => async () => {
+    try {
+        const html = await fetchHtml(url, { timeout: 10000 });
+        if (!html) return { name, status: "offline" };
+        const prices = parsers[parserKey](html, cleanPrice);
+        return { name, gram: prices, ceyrek: { n: "-", h: "-" }, ajda: { n: "-", h: "-" }, status: "online" };
+    } catch (e) {
+        return { name, status: "offline" };
+    }
+};
 
-singleScrape('altindukkani', 'Altın Dükkanı', 'https://www.altindukkani.com.tr/isgold-1-gram-altin-24-ayar-0995-kulce-altin');
+// --- Tüm firmalar tek yerde: hem tekli route'lar hem /api/all bunu kullanır ---
+const STORE_FETCHERS = {
+    altinanne: getAltinanne,
+    nadir: getNadir,
+    aga: getAga,
+    topaloglu: getTopaloglu,
+    gencaltin: () => fetchTriple("Genç Altın", {
+        g: "https://gencaltin.com/1-gram-24-ayar-kulce-altin",
+        c: "https://gencaltin.com/ziynet-ceyrek-altin-yeni-tarihli",
+        a: "https://gencaltin.com/15-gr-22-ayar-ajda-bilezik"
+    }, 'gencaltin'),
+    rima: () => fetchTriple("Rima Gold", {
+        g: "https://rimagold.com.tr/urunler/1-gr-24-ayar-gmr-gram-altin",
+        c: "https://rimagold.com.tr/urunler/ceyrek-altin-yeni-tarihli-(2026)",
+        a: "https://rimagold.com.tr/urunler/22-ayar-15-gram-yuvarlak-ajda-bilezik"
+    }, 'rima', { proxy: true }),
+    samsun: () => fetchTriple("Samsun Altın", {
+        g: "https://samsunaltinrafineri.com/1-gr-24-ayar-sar-gram-altin-1-gr-sar-995",
+        c: "https://samsunaltinrafineri.com/ceyrek-altin-darphane-yeni-tarihli-y-t-s-cyrk-s",
+        a: null // sitede 15 gr ajda bilezik satılmıyor
+    }, 'samsun'),
+    gencay: () => fetchTriple("Gencay Gold", {
+        g: "https://gencaygold.com/urun/1-gr-24-ayar-gencay-gram-altin/",
+        c: "https://gencaygold.com/urun/ceyrek-altin-darphane-eski-tarihli/",
+        a: "https://gencaygold.com/urun/oluklu-ajda-bilezik-22-ayar-15-gram/"
+    }, 'gencay'),
+    gramal: () => fetchTriple("Gramal", {
+        g: "https://www.gramal.com.tr/bir-gram-24-ayar-kulce-altin",
+        c: "https://www.gramal.com.tr/ceyrek-altin-yeni-tarihli",
+        a: "https://www.gramal.com.tr/u/243/15-gram-22-ayar-oluklu-ajda-bilezik"
+    }, 'gramal', { proxy: true }),
+    ahlatci: () => fetchTriple("Ahlatcı", {
+        g: "https://www.ahlatcistore.com.tr/urun/24-ayar-1g-altin",
+        c: "https://www.ahlatcistore.com.tr/urun/sarrafiye-ceyrek-altin-yeni-tarihli",
+        a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
+    }, 'ahlatci'),
+    anadolum: getAnadolum,
+    // Eski ürün linki (isgold-1-gram-...) 404 veriyordu, güncel linkle değiştirildi.
+    altindukkani: getSingle('Altın Dükkanı', 'https://altindukkani.com.tr/1-gr-altin-kulce', 'altindukkani')
+};
+
+// --- ENDPOINTS ---
+
+Object.entries(STORE_FETCHERS).forEach(([slug, fetcher]) => {
+    app.get(`/api/${slug}`, async (req, res) => {
+        res.json(await fetcher());
+    });
+});
+
+// Tüm firmaları tek seferde döndürür. GitHub Actions günde 3 kez bunu çağırıp
+// data/history.json'a kaydediyor; frontend artık tekli endpoint'lere istek atmıyor.
+app.get('/api/all', async (req, res) => {
+    const stores = await Promise.all(Object.values(STORE_FETCHERS).map(fn => fn()));
+    res.json({ timestamp: new Date().toISOString(), stores });
+});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🚀 Server ${PORT} portunda hazır!`));
