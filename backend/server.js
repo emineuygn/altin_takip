@@ -57,19 +57,44 @@ const parsers = {
     anadolum: require('./services/anadolum')
 };
 
+// ScraperAPI'nin ücretsiz planı eşzamanlı istek sayısını sınırlıyor; /api/all
+// çalışırken altinanne/gramal/rima birden 13 proxy isteği aynı anda ateşleyince
+// bir kısmı başarısız oluyordu. Günde 3 kez çalıştığımız için hız kritik değil,
+// proxy isteklerini kuyruğa alıp aynı anda en fazla 2 tanesini çalıştırıyoruz.
+const MAX_CONCURRENT_PROXY = 2;
+let activeProxyRequests = 0;
+const proxyQueue = [];
+const runWithProxyLimit = (fn) => new Promise((resolve) => {
+    const run = async () => {
+        activeProxyRequests++;
+        try {
+            resolve(await fn());
+        } finally {
+            activeProxyRequests--;
+            const next = proxyQueue.shift();
+            if (next) next();
+        }
+    };
+    if (activeProxyRequests < MAX_CONCURRENT_PROXY) run();
+    else proxyQueue.push(run);
+});
+
 // Tek bir URL çekip HTML döndürür (başarısız olursa null). opts.proxy: true ise
-// ScraperAPI üzerinden gider.
+// ScraperAPI üzerinden gider (kuyruklu).
 const fetchHtml = async (url, opts = {}) => {
     if (!url) return null;
-    try {
-        const target = opts.proxy ? viaProxy(url) : url;
-        const response = await axios.get(target, {
-            headers: opts.headers || HEADERS,
-            httpsAgent: agent,
-            timeout: opts.timeout || 5000
-        });
-        return response.data;
-    } catch (e) { return null; }
+    const doFetch = async () => {
+        try {
+            const target = opts.proxy ? viaProxy(url) : url;
+            const response = await axios.get(target, {
+                headers: opts.headers || HEADERS,
+                httpsAgent: agent,
+                timeout: opts.timeout || 5000
+            });
+            return response.data;
+        } catch (e) { return null; }
+    };
+    return opts.proxy ? runWithProxyLimit(doFetch) : doFetch();
 };
 
 // Gram/çeyrek/ajda linki olan standart firmalar için ortak veri çekici.
