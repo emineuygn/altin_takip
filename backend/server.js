@@ -467,7 +467,7 @@ const getTrendyolMarketplace = async () => {
         // gösteriyor. Türkiye'yi seçip devam etmemiz lazım, yoksa arama hiç
         // gerçek sonuç döndürmüyor.
         await page.goto('https://www.trendyol.com/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-        await page.waitForSelector('[data-countrycode="TR"]', { timeout: 10000 }).catch(() => {});
+        await page.waitForSelector('[data-countrycode="TR"]', { timeout: 20000 }).catch(() => {});
         const trSelected = await page.evaluate(() => {
             const tr = document.querySelector('[data-countrycode="TR"]');
             if (tr) { tr.click(); return true; }
@@ -494,7 +494,8 @@ const getTrendyolMarketplace = async () => {
             title: await page.title(),
             gramRawCount: gramRaw.length,
             ceyrekRawCount: ceyrekRaw.length,
-            ajdaRawCount: ajdaRaw.length
+            ajdaRawCount: ajdaRaw.length,
+            bodySnippet: (await page.evaluate(() => document.body.innerText)).slice(0, 400)
         };
         return { timestamp: new Date().toISOString(), gram, ceyrek, ajda, _debug: debug };
     } catch (e) {
