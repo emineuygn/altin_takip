@@ -496,6 +496,21 @@ const getPazaramaMarketplace = async () => {
     }
 };
 
+app.get('/api/debug-pazarama', async (req, res) => {
+    try {
+        const html = await fetchHtml(PAZARAMA_SEARCH_URL('agakulche 1 gram altın'), { timeout: 20000 });
+        const raw = await searchPazarama('agakulche 1 gram altın');
+        res.json({
+            htmlLength: html ? html.length : null,
+            hasProductTestId: html ? html.includes('product-card-title') : null,
+            rawCandidateCount: raw.length,
+            rawSample: raw.slice(0, 3)
+        });
+    } catch (e) {
+        res.json({ error: e.message });
+    }
+});
+
 app.get('/api/marketplace', async (req, res) => {
     res.json(await getPazaramaMarketplace());
 });
