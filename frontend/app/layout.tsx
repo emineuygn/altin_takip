@@ -32,6 +32,7 @@ export default function RootLayout({
         <nav className="flex gap-6 px-4 sm:px-10 py-3 border-b border-gray-100 bg-white text-xs font-bold uppercase tracking-widest">
           <Link href="/" className="text-black hover:opacity-60">Terminal</Link>
           <Link href="/analiz" className="text-black hover:opacity-60">Analiz</Link>
+          <Link href="/pazaryeri" className="text-black hover:opacity-60">Pazar Yeri</Link>
         </nav>
         {children}
       </body>

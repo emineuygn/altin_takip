@@ -397,6 +397,84 @@ const STORE_FETCHERS = {
     altindenizi: getAltindenizi
 };
 
+// --- Pazar Yeri (Trendyol) ---
+// Trendyol arama sonuçları binlerce, birbirinden alakasız ağırlık/ürün karışımı
+// döndürüyor (2gr, 5gr, 10 adet paketler, taklit takılar vs.). Her kategori için
+// başlığı ilgili ağırlığa/ürüne göre süzüp fiyata göre sıralıyoruz.
+const TRENDYOL_SEARCH_URL = (q) => `https://www.trendyol.com/sr?q=${encodeURIComponent(q)}`;
+
+const searchTrendyol = async (page, query) => {
+    await page.goto(TRENDYOL_SEARCH_URL(query), { waitUntil: 'networkidle2', timeout: 30000 });
+    return page.evaluate(() => {
+        const priceEls = Array.from(document.querySelectorAll('[data-testid="price-value"]'));
+        return priceEls.map(priceEl => {
+            let card = priceEl;
+            for (let i = 0; i < 8 && card; i++) {
+                card = card.parentElement;
+                if (card && card.tagName === 'A') break;
+            }
+            if (!card || card.tagName !== 'A') return null;
+            const priceText = priceEl.textContent.trim();
+            const priceNum = parseFloat(priceText.replace(/[^\d,]/g, '').replace(',', '.'));
+            const lines = card.innerText.split('\n').filter(Boolean);
+            // Başlık satırı genelde "En Çok Satan N. Ürün" gibi etiketlerden sonra gelir.
+            const title = lines.find(l => !/^(En Çok|Sponsorlu|Hızlı|Bugün|\d+ Günün|Başarılı)/.test(l)) || lines[0] || '';
+            const href = card.getAttribute('href');
+            return {
+                title,
+                price: isNaN(priceNum) ? null : priceNum,
+                url: href ? 'https://www.trendyol.com' + href.split('?')[0] : null
+            };
+        }).filter(x => x && x.price);
+    });
+};
+
+// "1 Adet" tekli ürün demek (yaygın bir etiketleme), sadece 2+ olanlar gerçek toplu pakettir.
+const isBulkPack = (title) => {
+    const m = title.match(/(\d+)\s*(adet|paket)/i);
+    return !!m && parseInt(m[1], 10) >= 2;
+};
+
+const filterAndSort = (items, predicate, limit = 8) =>
+    items
+        .filter(i => !isBulkPack(i.title) && predicate(i.title, i.price))
+        .sort((a, b) => a.price - b.price)
+        .slice(0, limit);
+
+const getTrendyolMarketplace = async () => {
+    let browser;
+    try {
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        });
+        const page = await browser.newPage();
+        await page.setUserAgent(HEADERS['User-Agent']);
+
+        const gramRaw = await searchTrendyol(page, '1 gram altın külçe');
+        const ceyrekRaw = await searchTrendyol(page, 'çeyrek altın');
+        const ajdaRaw = await searchTrendyol(page, '15 gram ajda bilezik');
+
+        const gram = filterAndSort(gramRaw, (t) => /\b1\s?(gr\.?|g|gram)\b/i.test(t));
+        const ceyrek = filterAndSort(ceyrekRaw, (t, p) =>
+            /çeyrek/i.test(t) && !/bileklik|kolye|yüzük|küpe|14\s*ayar/i.test(t) && p > 5000
+        );
+        const ajda = filterAndSort(ajdaRaw, (t) =>
+            /ajda/i.test(t) && /\b15\s?(gr\.?|g|gram)\b/i.test(t) && !/bebek|çocuk/i.test(t)
+        );
+
+        return { timestamp: new Date().toISOString(), gram, ceyrek, ajda };
+    } catch (e) {
+        return { timestamp: new Date().toISOString(), gram: [], ceyrek: [], ajda: [], error: e.message };
+    } finally {
+        if (browser) await browser.close();
+    }
+};
+
+app.get('/api/marketplace', async (req, res) => {
+    res.json(await getTrendyolMarketplace());
+});
+
 // --- ENDPOINTS ---
 
 Object.entries(STORE_FETCHERS).forEach(([slug, fetcher]) => {

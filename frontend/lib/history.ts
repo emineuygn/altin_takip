@@ -37,6 +37,38 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
   return Array.isArray(data) ? data : [];
 }
 
+export interface MarketplaceItem {
+  title: string;
+  price: number;
+  url: string | null;
+}
+
+export interface MarketplaceData {
+  timestamp: string | null;
+  gram: MarketplaceItem[];
+  ceyrek: MarketplaceItem[];
+  ajda: MarketplaceItem[];
+}
+
+export const MARKETPLACE_URL =
+  "https://api.github.com/repos/emineuygn/altin_takip/contents/data/marketplace.json?ref=main";
+
+export async function fetchMarketplace(): Promise<MarketplaceData> {
+  const empty: MarketplaceData = { timestamp: null, gram: [], ceyrek: [], ajda: [] };
+  const res = await fetch(MARKETPLACE_URL, {
+    cache: "no-store",
+    headers: { Accept: "application/vnd.github.raw+json" },
+  });
+  if (!res.ok) return empty;
+  const data = await res.json();
+  return {
+    timestamp: data.timestamp ?? null,
+    gram: Array.isArray(data.gram) ? data.gram : [],
+    ceyrek: Array.isArray(data.ceyrek) ? data.ceyrek : [],
+    ajda: Array.isArray(data.ajda) ? data.ajda : [],
+  };
+}
+
 export const parseVal = (val: string | number | undefined): number => {
   if (val === undefined || val === null || val === "-") return 0;
   if (typeof val === "number") return val;
