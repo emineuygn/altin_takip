@@ -350,7 +350,7 @@ const getAltindenizi = async () => {
             status: "online"
         };
     } catch (e) {
-        return { name: "Altın Denizi", status: "offline" };
+        return { name: "Altın Denizi", status: "offline", _debug: e.message };
     } finally {
         if (browser) await browser.close();
     }
