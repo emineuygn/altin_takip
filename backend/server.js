@@ -451,22 +451,19 @@ const getTrendyolMarketplace = async () => {
         const page = await browser.newPage();
         await page.setUserAgent(HEADERS['User-Agent']);
 
-        // DEBUG: ülke seçim ekranını incele
+        // Render'ın IP'si Türkiye dışı görünüyor, Trendyol "ülke seç" ekranı
+        // gösteriyor. Türkiye'yi seçip devam etmemiz lazım, yoksa arama hiç
+        // gerçek sonuç döndürmüyor.
         await page.goto('https://www.trendyol.com/', { waitUntil: 'networkidle2', timeout: 30000 });
         await new Promise(r => setTimeout(r, 1500));
-        const countryDebug = await page.evaluate(() => {
-            const links = Array.from(document.querySelectorAll('a, button, div[role="button"], span'));
-            const tr = links.find(el => el.innerText && el.innerText.trim() === 'Türkiye');
-            return {
-                title: document.title,
-                trFound: !!tr,
-                trTag: tr ? tr.tagName : null,
-                trHref: tr ? tr.getAttribute('href') : null,
-                trOuterHTML: tr ? tr.outerHTML.slice(0, 400) : null,
-                trParentHTML: tr && tr.parentElement ? tr.parentElement.outerHTML.slice(0, 600) : null
-            };
+        const trSelected = await page.evaluate(() => {
+            const tr = document.querySelector('[data-countrycode="TR"]');
+            if (tr) { tr.click(); return true; }
+            return false;
         });
-        const cookiesBefore = await page.cookies();
+        if (trSelected) {
+            await new Promise(r => setTimeout(r, 2500));
+        }
 
         const gramRaw = await searchTrendyol(page, '1 gram altın külçe');
         const ceyrekRaw = await searchTrendyol(page, 'çeyrek altın');
@@ -481,11 +478,11 @@ const getTrendyolMarketplace = async () => {
         );
 
         const debug = {
-            countryDebug,
-            cookiesBefore: cookiesBefore.map(c => c.name),
+            trSelected,
             title: await page.title(),
             gramRawCount: gramRaw.length,
-            bodySnippet: (await page.evaluate(() => document.body.innerText)).slice(0, 400)
+            ceyrekRawCount: ceyrekRaw.length,
+            ajdaRawCount: ajdaRaw.length
         };
         return { timestamp: new Date().toISOString(), gram, ceyrek, ajda, _debug: debug };
     } catch (e) {
