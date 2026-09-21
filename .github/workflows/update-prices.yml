@@ -26,11 +26,14 @@ jobs:
       - name: history.json'a ekle
         run: node scripts/append-history.js snapshot.json
 
-      - name: Pazar yeri (Trendyol) verisini çek
+      - name: Pazar yeri (Pazarama) verisini çek
         run: |
-          curl -sf "https://altin-takip-z0pz.onrender.com/api/marketplace" \
-            -o data/marketplace.json \
-            --max-time 150 --retry 3 --retry-delay 15 --retry-all-errors
+          for kategori in gram ceyrek ajda; do
+            curl -sf "https://altin-takip-z0pz.onrender.com/api/marketplace/$kategori" \
+              -o "$kategori.json" \
+              --max-time 250 --retry 3 --retry-delay 15 --retry-all-errors || echo "{}" > "$kategori.json"
+          done
+          node scripts/merge-marketplace.js gram.json ceyrek.json ajda.json
 
       - name: Commit ve push
         run: |
