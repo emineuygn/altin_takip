@@ -404,7 +404,8 @@ const STORE_FETCHERS = {
 const TRENDYOL_SEARCH_URL = (q) => `https://www.trendyol.com/sr?q=${encodeURIComponent(q)}`;
 
 const searchTrendyol = async (page, query) => {
-    await page.goto(TRENDYOL_SEARCH_URL(query), { waitUntil: 'networkidle2', timeout: 30000 });
+    await page.goto(TRENDYOL_SEARCH_URL(query), { waitUntil: 'domcontentloaded', timeout: 45000 });
+    await page.waitForSelector('[data-testid="price-value"]', { timeout: 20000 }).catch(() => {});
     return page.evaluate(() => {
         const priceEls = Array.from(document.querySelectorAll('[data-testid="price-value"]'));
         return priceEls.map(priceEl => {
@@ -454,8 +455,8 @@ const getTrendyolMarketplace = async () => {
         // Render'ın IP'si Türkiye dışı görünüyor, Trendyol "ülke seç" ekranı
         // gösteriyor. Türkiye'yi seçip devam etmemiz lazım, yoksa arama hiç
         // gerçek sonuç döndürmüyor.
-        await page.goto('https://www.trendyol.com/', { waitUntil: 'networkidle2', timeout: 30000 });
-        await new Promise(r => setTimeout(r, 1500));
+        await page.goto('https://www.trendyol.com/', { waitUntil: 'domcontentloaded', timeout: 45000 });
+        await page.waitForSelector('[data-countrycode="TR"]', { timeout: 10000 }).catch(() => {});
         const trSelected = await page.evaluate(() => {
             const tr = document.querySelector('[data-countrycode="TR"]');
             if (tr) { tr.click(); return true; }
