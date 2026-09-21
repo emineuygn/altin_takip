@@ -10,6 +10,9 @@ const orderList = [
   "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın", "Altın Dükkanı", "Nadir Gold", "Rima Gold", "Altın Denizi"
 ];
 
+// Anadolum Altın kendi sitesinden veri döndürmüyor — düzelene kadar gösterme.
+const HIDDEN_STORES = ["Anadolum Altın"];
+
 const METRICS = [
   { key: 'gram', label: '1 GR' },
   { key: 'ceyrek', label: 'Çeyrek' },
@@ -40,7 +43,9 @@ export default function AnalizPage() {
 
   const storeNames = useMemo(() => {
     const names = new Set<string>();
-    weekly.forEach(entry => entry.stores.forEach(s => names.add(s.name)));
+    weekly.forEach(entry => entry.stores.forEach(s => {
+      if (!HIDDEN_STORES.includes(s.name)) names.add(s.name);
+    }));
     return Array.from(names).sort((a, b) => {
       const ia = orderList.indexOf(a);
       const ib = orderList.indexOf(b);

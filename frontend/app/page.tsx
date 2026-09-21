@@ -7,6 +7,10 @@ const orderList = [
   "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın","Altın Dükkanı", "Nadir Gold", "Rima Gold", "Altın Denizi"
 ];
 
+// Anadolum Altın kendi sitesinden veri döndürmüyor (JS ile render ediliyor,
+// kategori/arama sayfaları hep boş dönüyor) — düzelene kadar ekranda gösterme.
+const HIDDEN_STORES = ["Anadolum Altın"];
+
 // Backend günde 3 kez (11:00/14:00/17:00) güncelleniyor; bu aralık sadece o
 // güncellemelerden birini kaçırmamak için verinin GitHub'dan tekrar okunmasını sağlar.
 const REFRESH_MS = 5 * 60 * 1000;
@@ -20,7 +24,7 @@ export default function GoldTerminal() {
       const history = await fetchHistory();
       if (history.length === 0) return;
       const latest = history[history.length - 1];
-      setStores(latest.stores);
+      setStores(latest.stores.filter(s => !HIDDEN_STORES.includes(s.name)));
       setLastUpdate(new Date(latest.timestamp).toLocaleString('tr-TR', {
         timeZone: 'Europe/Istanbul',
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
