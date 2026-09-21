@@ -80,19 +80,26 @@ const runWithProxyLimit = (fn) => new Promise((resolve) => {
 });
 
 // Tek bir URL çekip HTML döndürür (başarısız olursa null). opts.proxy: true ise
-// ScraperAPI üzerinden gider (kuyruklu).
+// ScraperAPI üzerinden gider (kuyruklu). Günde birkaç kez çalıştığımız için hız
+// değil güvenilirlik önemli: tek seferlik ağ hatalarına karşı bir kez daha denenir.
 const fetchHtml = async (url, opts = {}) => {
     if (!url) return null;
-    const doFetch = async () => {
+    const attempt = async () => {
         try {
             const target = opts.proxy ? viaProxy(url) : url;
             const response = await axios.get(target, {
                 headers: opts.headers || HEADERS,
                 httpsAgent: agent,
-                timeout: opts.timeout || 5000
+                timeout: opts.timeout || 15000
             });
             return response.data;
         } catch (e) { return null; }
+    };
+    const doFetch = async () => {
+        const first = await attempt();
+        if (first) return first;
+        await new Promise((r) => setTimeout(r, 1500));
+        return attempt();
     };
     return opts.proxy ? runWithProxyLimit(doFetch) : doFetch();
 };
