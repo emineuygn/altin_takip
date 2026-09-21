@@ -499,18 +499,18 @@ const getPazaramaMarketplace = async () => {
 };
 
 app.get('/api/debug-pazarama', async (req, res) => {
+    const target = PAZARAMA_SEARCH_URL('agakulche 1 gram altın');
+    const proxied = viaProxy(target);
+    let directError = null, proxyError = null, proxyStatus = null, proxyLen = null;
     try {
-        const html = await fetchHtml(PAZARAMA_SEARCH_URL('agakulche 1 gram altın'), { timeout: 25000, proxy: true });
-        const raw = await searchPazarama('agakulche 1 gram altın');
-        res.json({
-            htmlLength: html ? html.length : null,
-            hasProductTestId: html ? html.includes('product-card-title') : null,
-            rawCandidateCount: raw.length,
-            rawSample: raw.slice(0, 3)
-        });
-    } catch (e) {
-        res.json({ error: e.message });
-    }
+        await axios.get(target, { headers: HEADERS, httpsAgent: agent, timeout: 20000 });
+    } catch (e) { directError = { message: e.message, code: e.code, status: e.response?.status }; }
+    try {
+        const r = await axios.get(proxied, { headers: HEADERS, timeout: 40000 });
+        proxyStatus = r.status;
+        proxyLen = r.data?.length;
+    } catch (e) { proxyError = { message: e.message, code: e.code, status: e.response?.status, dataSnippet: typeof e.response?.data === 'string' ? e.response.data.slice(0, 300) : null }; }
+    res.json({ hasKey: !!SCRAPER_API_KEY, directError, proxyStatus, proxyLen, proxyError });
 });
 
 app.get('/api/marketplace', async (req, res) => {
