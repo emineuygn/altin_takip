@@ -412,7 +412,7 @@ const PAZARAMA_SEARCH_URL = (q) => `https://www.pazarama.com/arama?q=${encodeURI
 // Render'ın IP'si Pazarama tarafından tamamen engelleniyor (istek hiç dönmüyor),
 // diğer engellenen sitelerde olduğu gibi ScraperAPI proxy'si üzerinden gidiyoruz.
 const searchPazarama = async (query) => {
-    const html = await fetchHtml(PAZARAMA_SEARCH_URL(query), { timeout: 25000, proxy: true });
+    const html = await fetchHtml(PAZARAMA_SEARCH_URL(query), { timeout: 45000, proxy: true });
     if (!html) return [];
     const $ = cheerio.load(html);
     const out = [];
@@ -431,7 +431,7 @@ const searchPazarama = async (query) => {
 };
 
 const getPazaramaSellerSlug = async (href) => {
-    const html = await fetchHtml('https://www.pazarama.com' + href, { timeout: 25000, proxy: true });
+    const html = await fetchHtml('https://www.pazarama.com' + href, { timeout: 45000, proxy: true });
     if (!html) return null;
     const $ = cheerio.load(html);
     const sellerHref = $('a[product-seller-id]').first().attr('href');
@@ -497,21 +497,6 @@ const getPazaramaMarketplace = async () => {
         return { timestamp: new Date().toISOString(), stores: [], error: e.message };
     }
 };
-
-app.get('/api/debug-pazarama', async (req, res) => {
-    const target = PAZARAMA_SEARCH_URL('agakulche 1 gram altın');
-    const proxied = viaProxy(target);
-    let directError = null, proxyError = null, proxyStatus = null, proxyLen = null;
-    try {
-        await axios.get(target, { headers: HEADERS, httpsAgent: agent, timeout: 20000 });
-    } catch (e) { directError = { message: e.message, code: e.code, status: e.response?.status }; }
-    try {
-        const r = await axios.get(proxied, { headers: HEADERS, timeout: 40000 });
-        proxyStatus = r.status;
-        proxyLen = r.data?.length;
-    } catch (e) { proxyError = { message: e.message, code: e.code, status: e.response?.status, dataSnippet: typeof e.response?.data === 'string' ? e.response.data.slice(0, 300) : null }; }
-    res.json({ hasKey: !!SCRAPER_API_KEY, directError, proxyStatus, proxyLen, proxyError });
-});
 
 app.get('/api/marketplace', async (req, res) => {
     res.json(await getPazaramaMarketplace());
