@@ -463,7 +463,12 @@ const getTrendyolMarketplace = async () => {
             /ajda/i.test(t) && /\b15\s?(gr\.?|g|gram)\b/i.test(t) && !/bebek|çocuk/i.test(t)
         );
 
-        return { timestamp: new Date().toISOString(), gram, ceyrek, ajda };
+        const debug = {
+            title: await page.title(),
+            gramRawCount: gramRaw.length,
+            bodySnippet: (await page.evaluate(() => document.body.innerText)).slice(0, 400)
+        };
+        return { timestamp: new Date().toISOString(), gram, ceyrek, ajda, _debug: debug };
     } catch (e) {
         return { timestamp: new Date().toISOString(), gram: [], ceyrek: [], ajda: [], error: e.message };
     } finally {
