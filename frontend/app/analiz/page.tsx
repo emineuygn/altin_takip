@@ -7,7 +7,7 @@ import { fetchHistory, parseVal, type HistoryEntry } from '@/lib/history';
 
 const orderList = [
   "Altın Anne", "Ahlatcı", "Gencay Gold", "Genç Altın", "Gramal",
-  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın", "Altın Dükkanı", "Nadir Gold", "Rima Gold"
+  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın", "Altın Dükkanı", "Nadir Gold", "Rima Gold", "Altın Denizi"
 ];
 
 const METRICS = [

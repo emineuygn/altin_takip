@@ -3,6 +3,7 @@ const axios = require('axios');
 const cors = require('cors');
 const https = require('https');
 const cheerio = require('cheerio');
+const puppeteer = require('puppeteer');
 
 const app = express();
 app.use(cors());
@@ -304,6 +305,57 @@ const getAltindukkani = async () => {
     }
 };
 
+// altindenizi.com fiyatı JS ile hesaplayıp sayfaya yazıyor, statik HTML'de yok
+// (spot kur + ağırlık üzerinden anlık hesaplama). O yüzden sadece bu firma için
+// gerçek bir tarayıcı (Puppeteer) açıp sayfayı render ediyoruz. Günde birkaç kez
+// çalıştığımız ve her seferinde tarayıcıyı hemen kapattığımız için sorun değil.
+const extractAltindeniziPrice = async (page, url) => {
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+    const raw = await page.evaluate(() => {
+        const priceEl = document.querySelector('.product-price-sale .price, .product-price-sale span.price');
+        const havaleEl = document.querySelector('#productTransferPrice');
+        return {
+            price: priceEl ? priceEl.textContent.trim() : null,
+            havale: havaleEl ? havaleEl.textContent.trim() : null
+        };
+    });
+    const parse = (text) => {
+        if (!text) return "-";
+        const m = text.match(/[\d.]+,\d{2}/);
+        if (!m) return "-";
+        return parseFloat(m[0].replace(/\./g, '').replace(',', '.'));
+    };
+    const n = parse(raw.price);
+    const h = parse(raw.havale);
+    return { n, h: h !== "-" ? h : n };
+};
+
+const getAltindenizi = async () => {
+    let browser;
+    try {
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        });
+        const [gramPage, ceyrekPage] = await Promise.all([browser.newPage(), browser.newPage()]);
+        const [gram, ceyrek] = await Promise.all([
+            extractAltindeniziPrice(gramPage, "https://www.altindenizi.com/altindenizi-nadir-1-gram-altin-0-995-24-ayar-kulce-altin-129"),
+            extractAltindeniziPrice(ceyrekPage, "https://www.altindenizi.com/altindenizi-ziynet-ceyrek-altin-eski-tarihli-t-c-darphane-109")
+        ]);
+        return {
+            name: "Altın Denizi",
+            gram,
+            ceyrek,
+            ajda: { n: "-", h: "-" }, // sitede 15 gr ajda bilezik bulunamadı
+            status: "online"
+        };
+    } catch (e) {
+        return { name: "Altın Denizi", status: "offline" };
+    } finally {
+        if (browser) await browser.close();
+    }
+};
+
 // --- Tüm firmalar tek yerde: hem tekli route'lar hem /api/all bunu kullanır ---
 const STORE_FETCHERS = {
     altinanne: getAltinanne,
@@ -341,7 +393,8 @@ const STORE_FETCHERS = {
         a: "https://www.ahlatcistore.com.tr/urun/15-gr-22-ayar-oluklu-ajda-bilezik"
     }, 'ahlatci'),
     anadolum: getAnadolum,
-    altindukkani: getAltindukkani
+    altindukkani: getAltindukkani,
+    altindenizi: getAltindenizi
 };
 
 // --- ENDPOINTS ---

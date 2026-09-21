@@ -4,7 +4,7 @@ import { fetchHistory, formatPrice, parseVal, type StoreSnapshot } from '@/lib/h
 
 const orderList = [
   "Altın Anne", "Ahlatcı", "Gencay Gold", "Genç Altın", "Gramal",
-  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın","Altın Dükkanı", "Nadir Gold", "Rima Gold"
+  "Samsun Altın", "Topaloğlu", "Aga Külçe", "Anadolum Altın","Altın Dükkanı", "Nadir Gold", "Rima Gold", "Altın Denizi"
 ];
 
 // Backend günde 3 kez (11:00/14:00/17:00) güncelleniyor; bu aralık sadece o
