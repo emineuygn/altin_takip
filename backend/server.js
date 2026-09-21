@@ -448,58 +448,65 @@ const isBulkPack = (title) => {
 // Diğerleri (Gencay Gold, Genç Altın, Gramal, Samsun Altın, Nadir Gold, Altın
 // Dükkanı, Anadolum Altın) aramalarda kendi hesabıyla bulunamadı.
 const PAZARAMA_STORES = [
-    { name: 'Aga Külçe', slug: 'agakulche', queryBrand: 'agakulche' },
-    { name: 'Ahlatcı', slug: 'ahlatci-kuyumculuk', queryBrand: 'ahlatçı' },
-    { name: 'Altın Anne', slug: 'altin-anne', queryBrand: 'altın anne' },
-    { name: 'Altın Denizi', slug: 'altindenizi', queryBrand: 'altındenizi' },
-    { name: 'Rima Gold', slug: 'rimagold', queryBrand: 'rima gold' },
-    { name: 'Topaloğlu', slug: 'topaloglu-altin', queryBrand: 'topaloğlu' },
+    { name: 'Aga Külçe', slug: 'agakulche' },
+    { name: 'Ahlatcı', slug: 'ahlatci-kuyumculuk' },
+    { name: 'Altın Anne', slug: 'altin-anne' },
+    { name: 'Altın Denizi', slug: 'altindenizi' },
+    { name: 'Rima Gold', slug: 'rimagold' },
+    { name: 'Topaloğlu', slug: 'topaloglu-altin' },
 ];
 
 const CATEGORY_MATCHERS = {
-    gram: { query: '1 gram altın', predicate: (t) => /\b1\s?(gr\.?|g|gram)\b/i.test(t) && !/bileklik|kolye|yüzük|küpe/i.test(t) },
-    ceyrek: { query: 'çeyrek altın', predicate: (t, p) => /çeyrek/i.test(t) && !/bileklik|kolye|yüzük|küpe|14\s*ayar/i.test(t) && p > 5000 },
+    gram: { queries: ['1 gram altın külçe', '1 gram altın'], predicate: (t) => /\b1\s?(gr\.?|g|gram)\b/i.test(t) && !/bileklik|kolye|yüzük|küpe/i.test(t) },
+    ceyrek: { queries: ['çeyrek altın', 'ziynet çeyrek altın'], predicate: (t, p) => /çeyrek/i.test(t) && !/bileklik|kolye|yüzük|küpe|14\s*ayar/i.test(t) && p > 5000 },
     // Kullanıcı isteğiyle 15 gr yerine 10 gr 22 ayar ajda takip ediliyor.
-    ajda: { query: '10 gram ajda bilezik', predicate: (t, p) => /ajda/i.test(t) && /\b10\s?(gr\.?|g|gram)\b/i.test(t) && !/bebek|çocuk|gümüş|kaplama|14\s*ayar/i.test(t) && p > 15000 },
+    ajda: { queries: ['10 gram ajda bilezik', '10 gr 22 ayar ajda bilezik'], predicate: (t, p) => /ajda/i.test(t) && /\b10\s?(gr\.?|g|gram)\b/i.test(t) && !/bebek|çocuk|gümüş|kaplama|14\s*ayar/i.test(t) && p > 15000 },
 };
 
-// Bir firma+kategori için: markayla arama yap, adayları fiyata göre sırala,
-// her birinin GERÇEK satıcısını doğrulayana kadar (en fazla 6 aday) kontrol et.
-const findPazaramaPrice = async (store, categoryKey) => {
-    const { query, predicate } = CATEGORY_MATCHERS[categoryKey];
-    const raw = await searchPazarama(`${store.queryBrand} ${query}`);
+// Her kategori için iki farklı arama sorgusunu birleştirip, süzülmüş adayların
+// gerçek satıcısını kontrol ederek bizim bildiğimiz firmalarla eşleştiriyoruz.
+// (Firma başına ayrı arama yapmak — 6 firma x 3 kategori = 18+ istek — Render'da
+// tek bir HTTP isteğinin süresini aşıp hiç tamamlanmıyordu; bu yüzden /api/marketplace
+// tek kategoriyi işleyen 3 ayrı endpoint'e bölündü, GitHub Actions üçünü de çağırıp birleştiriyor.)
+const getPazaramaCategory = async (categoryKey) => {
+    const { queries, predicate } = CATEGORY_MATCHERS[categoryKey];
+    const rawLists = await Promise.all(queries.map(searchPazarama));
+    const seen = new Set();
+    const raw = [];
+    rawLists.flat().forEach(item => {
+        if (seen.has(item.title)) return;
+        seen.add(item.title);
+        raw.push(item);
+    });
     const candidates = raw
         .filter(i => !isBulkPack(i.title) && predicate(i.title, i.price))
         .sort((a, b) => a.price - b.price)
-        .slice(0, 4);
+        .slice(0, 18);
 
+    const results = {};
     for (const candidate of candidates) {
+        if (Object.keys(results).length >= PAZARAMA_STORES.length) break;
         const slug = await getPazaramaSellerSlug(candidate.href);
-        if (slug === store.slug) {
-            return { price: candidate.price, title: candidate.title, url: 'https://www.pazarama.com' + candidate.href.split('?')[0] };
+        const store = PAZARAMA_STORES.find(s => s.slug === slug);
+        if (store && !results[store.name]) {
+            results[store.name] = {
+                price: candidate.price,
+                title: candidate.title,
+                url: 'https://www.pazarama.com' + candidate.href.split('?')[0]
+            };
         }
     }
-    return null;
+    return results;
 };
 
-const getPazaramaMarketplace = async () => {
-    try {
-        const stores = await Promise.all(PAZARAMA_STORES.map(async (store) => {
-            const [gram, ceyrek, ajda] = await Promise.all([
-                findPazaramaPrice(store, 'gram'),
-                findPazaramaPrice(store, 'ceyrek'),
-                findPazaramaPrice(store, 'ajda'),
-            ]);
-            return { name: store.name, gram, ceyrek, ajda };
-        }));
-        return { timestamp: new Date().toISOString(), stores };
-    } catch (e) {
-        return { timestamp: new Date().toISOString(), stores: [], error: e.message };
-    }
-};
-
-app.get('/api/marketplace', async (req, res) => {
-    res.json(await getPazaramaMarketplace());
+['gram', 'ceyrek', 'ajda'].forEach((key) => {
+    app.get(`/api/marketplace/${key}`, async (req, res) => {
+        try {
+            res.json({ category: key, results: await getPazaramaCategory(key) });
+        } catch (e) {
+            res.json({ category: key, results: {}, error: e.message });
+        }
+    });
 });
 
 // --- ENDPOINTS ---
