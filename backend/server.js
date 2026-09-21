@@ -447,10 +447,21 @@ const getTrendyolMarketplace = async () => {
     try {
         browser = await puppeteer.launch({
             headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            args: [
+                '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
+                '--disable-gpu', '--single-process', '--no-zygote'
+            ]
         });
         const page = await browser.newPage();
         await page.setUserAgent(HEADERS['User-Agent']);
+        // Render'ın 512MB sınırına takılmayalım diye görsel/font/medya gibi
+        // ihtiyacımız olmayan kaynakları hiç indirmiyoruz (sadece metin/fiyat lazım).
+        await page.setRequestInterception(true);
+        page.on('request', (req) => {
+            const type = req.resourceType();
+            if (['image', 'stylesheet', 'font', 'media'].includes(type)) req.abort();
+            else req.continue();
+        });
 
         // Render'ın IP'si Türkiye dışı görünüyor, Trendyol "ülke seç" ekranı
         // gösteriyor. Türkiye'yi seçip devam etmemiz lazım, yoksa arama hiç
