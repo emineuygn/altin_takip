@@ -409,8 +409,10 @@ const STORE_FETCHERS = {
 // kontrol edip beklediğimiz satıcı slug'ıyla eşleşeni doğruluyoruz.
 const PAZARAMA_SEARCH_URL = (q) => `https://www.pazarama.com/arama?q=${encodeURIComponent(q)}`;
 
+// Render'ın IP'si Pazarama tarafından tamamen engelleniyor (istek hiç dönmüyor),
+// diğer engellenen sitelerde olduğu gibi ScraperAPI proxy'si üzerinden gidiyoruz.
 const searchPazarama = async (query) => {
-    const html = await fetchHtml(PAZARAMA_SEARCH_URL(query), { timeout: 20000 });
+    const html = await fetchHtml(PAZARAMA_SEARCH_URL(query), { timeout: 25000, proxy: true });
     if (!html) return [];
     const $ = cheerio.load(html);
     const out = [];
@@ -429,7 +431,7 @@ const searchPazarama = async (query) => {
 };
 
 const getPazaramaSellerSlug = async (href) => {
-    const html = await fetchHtml('https://www.pazarama.com' + href, { timeout: 15000 });
+    const html = await fetchHtml('https://www.pazarama.com' + href, { timeout: 25000, proxy: true });
     if (!html) return null;
     const $ = cheerio.load(html);
     const sellerHref = $('a[product-seller-id]').first().attr('href');
@@ -469,7 +471,7 @@ const findPazaramaPrice = async (store, categoryKey) => {
     const candidates = raw
         .filter(i => !isBulkPack(i.title) && predicate(i.title, i.price))
         .sort((a, b) => a.price - b.price)
-        .slice(0, 6);
+        .slice(0, 4);
 
     for (const candidate of candidates) {
         const slug = await getPazaramaSellerSlug(candidate.href);
@@ -498,7 +500,7 @@ const getPazaramaMarketplace = async () => {
 
 app.get('/api/debug-pazarama', async (req, res) => {
     try {
-        const html = await fetchHtml(PAZARAMA_SEARCH_URL('agakulche 1 gram altın'), { timeout: 20000 });
+        const html = await fetchHtml(PAZARAMA_SEARCH_URL('agakulche 1 gram altın'), { timeout: 25000, proxy: true });
         const raw = await searchPazarama('agakulche 1 gram altın');
         res.json({
             htmlLength: html ? html.length : null,
