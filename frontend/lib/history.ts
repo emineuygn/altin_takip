@@ -37,24 +37,31 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
   return Array.isArray(data) ? data : [];
 }
 
-export interface MarketplaceItem {
-  title: string;
+export interface MarketplaceListing {
   price: number;
+  title: string;
   url: string | null;
+}
+
+export interface MarketplaceStore {
+  name: string;
+  gram: MarketplaceListing | null;
+  ceyrek: MarketplaceListing | null;
+  ajda: MarketplaceListing | null;
 }
 
 export interface MarketplaceData {
   timestamp: string | null;
-  gram: MarketplaceItem[];
-  ceyrek: MarketplaceItem[];
-  ajda: MarketplaceItem[];
+  stores: MarketplaceStore[];
 }
 
+// Pazar Yeri, "en ucuz N ilan" değil — bizim zaten takip ettiğimiz firmaların
+// Pazarama'daki (kendi satıcı hesaplarıyla doğrulanmış) fiyatını gösteriyor.
 export const MARKETPLACE_URL =
   "https://api.github.com/repos/emineuygn/altin_takip/contents/data/marketplace.json?ref=main";
 
 export async function fetchMarketplace(): Promise<MarketplaceData> {
-  const empty: MarketplaceData = { timestamp: null, gram: [], ceyrek: [], ajda: [] };
+  const empty: MarketplaceData = { timestamp: null, stores: [] };
   const res = await fetch(MARKETPLACE_URL, {
     cache: "no-store",
     headers: { Accept: "application/vnd.github.raw+json" },
@@ -63,9 +70,7 @@ export async function fetchMarketplace(): Promise<MarketplaceData> {
   const data = await res.json();
   return {
     timestamp: data.timestamp ?? null,
-    gram: Array.isArray(data.gram) ? data.gram : [],
-    ceyrek: Array.isArray(data.ceyrek) ? data.ceyrek : [],
-    ajda: Array.isArray(data.ajda) ? data.ajda : [],
+    stores: Array.isArray(data.stores) ? data.stores : [],
   };
 }
 

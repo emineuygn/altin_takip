@@ -397,37 +397,43 @@ const STORE_FETCHERS = {
     altindenizi: getAltindenizi
 };
 
-// --- Pazar Yeri (Trendyol) ---
-// Trendyol arama sonuçları binlerce, birbirinden alakasız ağırlık/ürün karışımı
-// döndürüyor (2gr, 5gr, 10 adet paketler, taklit takılar vs.). Her kategori için
-// başlığı ilgili ağırlığa/ürüne göre süzüp fiyata göre sıralıyoruz.
-const TRENDYOL_SEARCH_URL = (q) => `https://www.trendyol.com/sr?q=${encodeURIComponent(q)}`;
+// --- Pazar Yeri (Pazarama) ---
+// Trendyol ve ÇiçekSepeti Cloudflare korumalı + coğrafi engelleme yapıyor,
+// Render'ın kısıtlı belleğinde Puppeteer ile de güvenilir çalışmadı. Pazarama
+// düz HTML döndürüyor (bot koruması yok), hafif axios+cheerio yeterli.
+//
+// Bu sayfa "en ucuz N ilan" değil, bizim zaten takip ettiğimiz firmaların
+// Pazarama'daki fiyatını gösteriyor. Arama sonucundaki başlık her zaman
+// markayı içermiyor (ör. Ahlatcı'nın ilanı sadece "1g Altın" diye geçiyor),
+// bu yüzden ürün detay sayfasındaki gerçek satıcı bilgisini (a[product-seller-id])
+// kontrol edip beklediğimiz satıcı slug'ıyla eşleşeni doğruluyoruz.
+const PAZARAMA_SEARCH_URL = (q) => `https://www.pazarama.com/arama?q=${encodeURIComponent(q)}`;
 
-const searchTrendyol = async (page, query) => {
-    await page.goto(TRENDYOL_SEARCH_URL(query), { waitUntil: 'domcontentloaded', timeout: 45000 });
-    await page.waitForSelector('[data-testid="price-value"]', { timeout: 20000 }).catch(() => {});
-    return page.evaluate(() => {
-        const priceEls = Array.from(document.querySelectorAll('[data-testid="price-value"]'));
-        return priceEls.map(priceEl => {
-            let card = priceEl;
-            for (let i = 0; i < 8 && card; i++) {
-                card = card.parentElement;
-                if (card && card.tagName === 'A') break;
-            }
-            if (!card || card.tagName !== 'A') return null;
-            const priceText = priceEl.textContent.trim();
-            const priceNum = parseFloat(priceText.replace(/[^\d,]/g, '').replace(',', '.'));
-            const lines = card.innerText.split('\n').filter(Boolean);
-            // Başlık satırı genelde "En Çok Satan N. Ürün" gibi etiketlerden sonra gelir.
-            const title = lines.find(l => !/^(En Çok|Sponsorlu|Hızlı|Bugün|\d+ Günün|Başarılı)/.test(l)) || lines[0] || '';
-            const href = card.getAttribute('href');
-            return {
-                title,
-                price: isNaN(priceNum) ? null : priceNum,
-                url: href ? 'https://www.trendyol.com' + href.split('?')[0] : null
-            };
-        }).filter(x => x && x.price);
+const searchPazarama = async (query) => {
+    const html = await fetchHtml(PAZARAMA_SEARCH_URL(query), { timeout: 20000 });
+    if (!html) return [];
+    const $ = cheerio.load(html);
+    const out = [];
+    $('a[href*="-p-"]').each((i, el) => {
+        const $el = $(el);
+        const title = $el.find('[data-testid="product-card-title"]').first().text().trim();
+        const priceRaw = $el.find('[data-testid="base-product-card-price-container"]').first().text().trim();
+        const href = $el.attr('href');
+        if (!title || !priceRaw || !href) return;
+        const nums = [...priceRaw.matchAll(/([\d.]+,\d{2})\s*TL/g)]
+            .map(m => parseFloat(m[1].replace(/\./g, '').replace(',', '.')));
+        if (nums.length === 0) return;
+        out.push({ title, price: Math.min(...nums), href });
     });
+    return out;
+};
+
+const getPazaramaSellerSlug = async (href) => {
+    const html = await fetchHtml('https://www.pazarama.com' + href, { timeout: 15000 });
+    if (!html) return null;
+    const $ = cheerio.load(html);
+    const sellerHref = $('a[product-seller-id]').first().attr('href');
+    return sellerHref ? sellerHref.replace('/magaza/', '') : null;
 };
 
 // "1 Adet" tekli ürün demek (yaygın bir etiketleme), sadece 2+ olanlar gerçek toplu pakettir.
@@ -436,77 +442,62 @@ const isBulkPack = (title) => {
     return !!m && parseInt(m[1], 10) >= 2;
 };
 
-const filterAndSort = (items, predicate, limit = 8) =>
-    items
+// Bizim takip ettiğimiz firmalardan Pazarama'da kendi satıcı hesabıyla bulunanlar.
+// Diğerleri (Gencay Gold, Genç Altın, Gramal, Samsun Altın, Nadir Gold, Altın
+// Dükkanı, Anadolum Altın) aramalarda kendi hesabıyla bulunamadı.
+const PAZARAMA_STORES = [
+    { name: 'Aga Külçe', slug: 'agakulche', queryBrand: 'agakulche' },
+    { name: 'Ahlatcı', slug: 'ahlatci-kuyumculuk', queryBrand: 'ahlatçı' },
+    { name: 'Altın Anne', slug: 'altin-anne', queryBrand: 'altın anne' },
+    { name: 'Altın Denizi', slug: 'altindenizi', queryBrand: 'altındenizi' },
+    { name: 'Rima Gold', slug: 'rimagold', queryBrand: 'rima gold' },
+    { name: 'Topaloğlu', slug: 'topaloglu-altin', queryBrand: 'topaloğlu' },
+];
+
+const CATEGORY_MATCHERS = {
+    gram: { query: '1 gram altın', predicate: (t) => /\b1\s?(gr\.?|g|gram)\b/i.test(t) && !/bileklik|kolye|yüzük|küpe/i.test(t) },
+    ceyrek: { query: 'çeyrek altın', predicate: (t, p) => /çeyrek/i.test(t) && !/bileklik|kolye|yüzük|küpe|14\s*ayar/i.test(t) && p > 5000 },
+    // Kullanıcı isteğiyle 15 gr yerine 10 gr 22 ayar ajda takip ediliyor.
+    ajda: { query: '10 gram ajda bilezik', predicate: (t, p) => /ajda/i.test(t) && /\b10\s?(gr\.?|g|gram)\b/i.test(t) && !/bebek|çocuk|gümüş|kaplama|14\s*ayar/i.test(t) && p > 15000 },
+};
+
+// Bir firma+kategori için: markayla arama yap, adayları fiyata göre sırala,
+// her birinin GERÇEK satıcısını doğrulayana kadar (en fazla 6 aday) kontrol et.
+const findPazaramaPrice = async (store, categoryKey) => {
+    const { query, predicate } = CATEGORY_MATCHERS[categoryKey];
+    const raw = await searchPazarama(`${store.queryBrand} ${query}`);
+    const candidates = raw
         .filter(i => !isBulkPack(i.title) && predicate(i.title, i.price))
         .sort((a, b) => a.price - b.price)
-        .slice(0, limit);
+        .slice(0, 6);
 
-const getTrendyolMarketplace = async () => {
-    let browser;
-    try {
-        browser = await puppeteer.launch({
-            headless: true,
-            args: [
-                '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-                '--disable-gpu', '--single-process', '--no-zygote'
-            ]
-        });
-        const page = await browser.newPage();
-        await page.setUserAgent(HEADERS['User-Agent']);
-        // Render'ın 512MB sınırına takılmayalım diye görsel/font/medya gibi
-        // ihtiyacımız olmayan kaynakları hiç indirmiyoruz (sadece metin/fiyat lazım).
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            const type = req.resourceType();
-            if (['image', 'stylesheet', 'font', 'media'].includes(type)) req.abort();
-            else req.continue();
-        });
-
-        // Render'ın IP'si Türkiye dışı görünüyor, Trendyol "ülke seç" ekranı
-        // gösteriyor. Türkiye'yi seçip devam etmemiz lazım, yoksa arama hiç
-        // gerçek sonuç döndürmüyor.
-        await page.goto('https://www.trendyol.com/', { waitUntil: 'domcontentloaded', timeout: 45000 });
-        await page.waitForSelector('[data-countrycode="TR"]', { timeout: 20000 }).catch(() => {});
-        const trSelected = await page.evaluate(() => {
-            const tr = document.querySelector('[data-countrycode="TR"]');
-            if (tr) { tr.click(); return true; }
-            return false;
-        });
-        if (trSelected) {
-            await new Promise(r => setTimeout(r, 2500));
+    for (const candidate of candidates) {
+        const slug = await getPazaramaSellerSlug(candidate.href);
+        if (slug === store.slug) {
+            return { price: candidate.price, title: candidate.title, url: 'https://www.pazarama.com' + candidate.href.split('?')[0] };
         }
+    }
+    return null;
+};
 
-        const gramRaw = await searchTrendyol(page, '1 gram altın külçe');
-        const ceyrekRaw = await searchTrendyol(page, 'çeyrek altın');
-        const ajdaRaw = await searchTrendyol(page, '15 gram ajda bilezik');
-
-        const gram = filterAndSort(gramRaw, (t) => /\b1\s?(gr\.?|g|gram)\b/i.test(t));
-        const ceyrek = filterAndSort(ceyrekRaw, (t, p) =>
-            /çeyrek/i.test(t) && !/bileklik|kolye|yüzük|küpe|14\s*ayar/i.test(t) && p > 5000
-        );
-        const ajda = filterAndSort(ajdaRaw, (t) =>
-            /ajda/i.test(t) && /\b15\s?(gr\.?|g|gram)\b/i.test(t) && !/bebek|çocuk/i.test(t)
-        );
-
-        const debug = {
-            trSelected,
-            title: await page.title(),
-            gramRawCount: gramRaw.length,
-            ceyrekRawCount: ceyrekRaw.length,
-            ajdaRawCount: ajdaRaw.length,
-            bodySnippet: (await page.evaluate(() => document.body.innerText)).slice(0, 400)
-        };
-        return { timestamp: new Date().toISOString(), gram, ceyrek, ajda, _debug: debug };
+const getPazaramaMarketplace = async () => {
+    try {
+        const stores = await Promise.all(PAZARAMA_STORES.map(async (store) => {
+            const [gram, ceyrek, ajda] = await Promise.all([
+                findPazaramaPrice(store, 'gram'),
+                findPazaramaPrice(store, 'ceyrek'),
+                findPazaramaPrice(store, 'ajda'),
+            ]);
+            return { name: store.name, gram, ceyrek, ajda };
+        }));
+        return { timestamp: new Date().toISOString(), stores };
     } catch (e) {
-        return { timestamp: new Date().toISOString(), gram: [], ceyrek: [], ajda: [], error: e.message };
-    } finally {
-        if (browser) await browser.close();
+        return { timestamp: new Date().toISOString(), stores: [], error: e.message };
     }
 };
 
 app.get('/api/marketplace', async (req, res) => {
-    res.json(await getTrendyolMarketplace());
+    res.json(await getPazaramaMarketplace());
 });
 
 // --- ENDPOINTS ---
