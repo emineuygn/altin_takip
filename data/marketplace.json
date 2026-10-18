@@ -1,4 +1,79 @@
 {
-  "timestamp": "2026-10-17T17:03:05.183Z",
-  "stores": []
+  "timestamp": "2026-10-18T12:48:57.754Z",
+  "stores": [
+    {
+      "name": "Altın Denizi",
+      "gram": {
+        "price": 7166.41,
+        "title": "AltınDenizi Nadir 1 Gram Altın 0.995 (24 Ayar) Külçe Altın",
+        "url": "https://www.pazarama.com/altindenizi-nadir-1-gram-altin-0995-24-ayar-kulce-altin-p-8685228150137"
+      },
+      "ceyrek": {
+        "price": 11413.31,
+        "title": "AltınDenizi Ziynet Çeyrek Altın Eski Tarihli T.C. Darphane",
+        "url": "https://www.pazarama.com/darphane-ceyrek-altin-ziynet-22-ayar-1-75g-8685228150038-p-8685228150038"
+      },
+      "ajda": {
+        "price": 65837.77,
+        "title": "AltınDenizi Ajda 10 Gram 22 Ayar Altın Bilezik TSE Damgalı",
+        "url": "https://www.pazarama.com/altindenizi-ajda-10-gram-22-ayar-altin-bilezik-tse-damgali-p-8685228153527"
+      }
+    },
+    {
+      "name": "Altın Anne",
+      "gram": {
+        "price": 7192.13,
+        "title": "1 gr 24 Ayar İAR Gram Altın",
+        "url": "https://www.pazarama.com/1-gr-24-ayar-iar-gram-altin-p-1-g-iar-995"
+      },
+      "ceyrek": null,
+      "ajda": {
+        "price": 66774.3,
+        "title": "Düz Sade Ajda Bilezik 22 Ayar 10 GR",
+        "url": "https://www.pazarama.com/duz-sade-ajda-bilezik-22-ayar-10-gr-p-10-G-AJD"
+      }
+    },
+    {
+      "name": "Aga Külçe",
+      "gram": {
+        "price": 7234.28,
+        "title": "AgaKulche 1 gr 995 24 Ayar AMR Külçe Altın",
+        "url": "https://www.pazarama.com/agakulche-1-gr-995-24-ayar-amr-kulce-altin-p-8684159662979"
+      },
+      "ceyrek": {
+        "price": 11533.72,
+        "title": "AgaKulche Ziynet Çeyrek Altin - Eski (Kulplu)",
+        "url": "https://www.pazarama.com/agakulche-ziynet-ceyrek-altin-eski-kulplu-p-8683513300314"
+      },
+      "ajda": {
+        "price": 67478.26,
+        "title": "AgaKulche Ajda Bilezik 10 Gram 22 Ayar Bilezik",
+        "url": "https://www.pazarama.com/agakulche-ajda-bilezik-10-gram-22-ayar-bilezik-p-8684159689409"
+      }
+    },
+    {
+      "name": "Rima Gold",
+      "gram": {
+        "price": 8152.65,
+        "title": "Nadir 1 Gram (995) 24 Ayar Külçe Altın",
+        "url": "https://www.pazarama.com/agakulche-nadir-1-gram-995-24-ayar-kulce-altin-p-8683513300915"
+      },
+      "ceyrek": null,
+      "ajda": null
+    },
+    {
+      "name": "Ahlatcı",
+      "gram": null,
+      "ceyrek": {
+        "price": 11668.02,
+        "title": "Sarrafiye-1 Adet Eski Tarihli Çeyrek Altın",
+        "url": "https://www.pazarama.com/sarrafiye-1-adet-eski-tarihli-ceyrek-altin-p-Ahl00233"
+      },
+      "ajda": {
+        "price": 65738.31,
+        "title": "Ahlatcı 10 gr 22 Ayar Ajda Bilezik Standart",
+        "url": "https://www.pazarama.com/10-gr-22-ayar-ajda-bilezik-ahlatci-kuyumculuk-p-Ahl00117"
+      }
+    }
+  ]
 }
