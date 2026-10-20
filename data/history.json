@@ -11143,5 +11143,218 @@
         "status": "online"
       }
     ]
+  },
+  {
+    "timestamp": "2026-10-20T18:26:54.954Z",
+    "stores": [
+      {
+        "name": "Altın Anne",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Nadir Gold",
+        "gram": {
+          "n": 7517.54,
+          "h": 7263.33
+        },
+        "ceyrek": {
+          "n": 12731.8,
+          "h": 12301.25
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Aga Külçe",
+        "gram": {
+          "n": 7232.92,
+          "h": 7232.92
+        },
+        "ceyrek": {
+          "n": 11649.65,
+          "h": 11649.65
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Topaloğlu",
+        "gram": {
+          "n": 7157.05,
+          "h": 7157.05
+        },
+        "ceyrek": {
+          "n": 11293.85,
+          "h": 11293.85
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Genç Altın",
+        "gram": {
+          "n": 7311.95,
+          "h": 7019.47
+        },
+        "ceyrek": {
+          "n": 12639.79,
+          "h": 12134.2
+        },
+        "ajda": {
+          "n": 100094.63,
+          "h": 96090.85
+        },
+        "status": "online"
+      },
+      {
+        "name": "Rima Gold",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Samsun Altın",
+        "gram": {
+          "n": 7261.15,
+          "h": 7043.32
+        },
+        "ceyrek": {
+          "n": 12300.41,
+          "h": 11931.4
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Gencay Gold",
+        "gram": {
+          "n": 7128.62,
+          "h": 6879.12
+        },
+        "ceyrek": {
+          "n": 11266.82,
+          "h": 10872.48
+        },
+        "ajda": {
+          "n": 97611.84,
+          "h": 94195.43
+        },
+        "status": "online"
+      },
+      {
+        "name": "Gramal",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Ahlatcı",
+        "gram": {
+          "n": 7125.5,
+          "h": 6911.73
+        },
+        "ceyrek": {
+          "n": 11782.33,
+          "h": 11428.86
+        },
+        "ajda": {
+          "n": 97233.86,
+          "h": 94316.85
+        },
+        "status": "online"
+      },
+      {
+        "name": "Anadolum Altın",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Altın Dükkanı",
+        "gram": {
+          "n": 7208.86,
+          "h": 6931.43
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Altın Denizi",
+        "gram": {
+          "n": 7108.83,
+          "h": 6966.65
+        },
+        "ceyrek": {
+          "n": 11423.1,
+          "h": 11194.64
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      }
+    ]
   }
 ]
