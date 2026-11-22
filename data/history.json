@@ -1,202 +1,5 @@
 [
   {
-    "timestamp": "2026-09-18T11:21:30.510Z",
-    "stores": [
-      {
-        "name": "Altın Anne",
-        "gram": {
-          "n": 7467.67,
-          "h": 7318.32
-        },
-        "ceyrek": {
-          "n": 12173.75,
-          "h": 11930.28
-        },
-        "ajda": {
-          "n": 101460.04,
-          "h": 99430.84
-        },
-        "status": "online"
-      },
-      {
-        "name": "Nadir Gold",
-        "gram": {
-          "n": 7828.9,
-          "h": 7564.15
-        },
-        "ceyrek": {
-          "n": 13265.22,
-          "h": 12816.64
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Aga Külçe",
-        "gram": {
-          "n": 7430.24,
-          "h": 7430.24
-        },
-        "ceyrek": {
-          "n": 11923.51,
-          "h": 11923.51
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Topaloğlu",
-        "gram": {
-          "n": 7413.64,
-          "h": 7413.64
-        },
-        "ceyrek": {
-          "n": 11738.97,
-          "h": 11738.97
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Genç Altın",
-        "gram": {
-          "n": 7847.89,
-          "h": 7533.97
-        },
-        "ceyrek": {
-          "n": 13152.53,
-          "h": 12626.43
-        },
-        "ajda": {
-          "n": 102692.45,
-          "h": 98584.75
-        },
-        "status": "online"
-      },
-      {
-        "name": "Rima Gold",
-        "gram": {
-          "n": "-",
-          "h": "-"
-        },
-        "ceyrek": {
-          "n": 12226.42,
-          "h": 12226.42
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Samsun Altın",
-        "gram": {
-          "n": 7532.95,
-          "h": 7306.96
-        },
-        "ceyrek": {
-          "n": 12769.94,
-          "h": 12386.84
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Gencay Gold",
-        "gram": {
-          "n": 7402.44,
-          "h": 7143.35
-        },
-        "ceyrek": {
-          "n": 11713.97,
-          "h": 11303.98
-        },
-        "ajda": {
-          "n": 101465.43,
-          "h": 97914.14
-        },
-        "status": "online"
-      },
-      {
-        "name": "Gramal",
-        "gram": {
-          "n": "-",
-          "h": "-"
-        },
-        "ceyrek": {
-          "n": "-",
-          "h": "-"
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Ahlatcı",
-        "gram": {
-          "n": 7450.65,
-          "h": 7227.13
-        },
-        "ceyrek": {
-          "n": 12311.69,
-          "h": 11942.34
-        },
-        "ajda": {
-          "n": 101599.51,
-          "h": 98551.52
-        },
-        "status": "online"
-      },
-      {
-        "name": "Anadolum Altın",
-        "gram": {
-          "n": "-",
-          "h": "-"
-        },
-        "ceyrek": {
-          "n": "-",
-          "h": "-"
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      },
-      {
-        "name": "Altın Dükkanı",
-        "gram": {
-          "n": "-",
-          "h": "-"
-        },
-        "ceyrek": {
-          "n": "-",
-          "h": "-"
-        },
-        "ajda": {
-          "n": "-",
-          "h": "-"
-        },
-        "status": "online"
-      }
-    ]
-  },
-  {
     "timestamp": "2026-09-18T11:27:09.247Z",
     "stores": [
       {
@@ -18818,6 +18621,219 @@
   },
   {
     "timestamp": "2026-11-21T16:06:18.232Z",
+    "stores": [
+      {
+        "name": "Altın Anne",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Nadir Gold",
+        "gram": {
+          "n": 6771.03,
+          "h": 6542.05
+        },
+        "ceyrek": {
+          "n": 11271.07,
+          "h": 10889.93
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Aga Külçe",
+        "gram": {
+          "n": 6673.74,
+          "h": 6673.74
+        },
+        "ceyrek": {
+          "n": 10848.35,
+          "h": 10848.35
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Topaloğlu",
+        "gram": {
+          "n": 6622.26,
+          "h": 6622.26
+        },
+        "ceyrek": {
+          "n": 10566.93,
+          "h": 10566.93
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Genç Altın",
+        "gram": {
+          "n": 6771.06,
+          "h": 6500.21
+        },
+        "ceyrek": {
+          "n": 11626.22,
+          "h": 11161.17
+        },
+        "ajda": {
+          "n": 92068.18,
+          "h": 88385.45
+        },
+        "status": "online"
+      },
+      {
+        "name": "Rima Gold",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Samsun Altın",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Gencay Gold",
+        "gram": {
+          "n": 6537.35,
+          "h": 6308.54
+        },
+        "ceyrek": {
+          "n": 10381.7,
+          "h": 10018.34
+        },
+        "ajda": {
+          "n": 90298.5,
+          "h": 87138.05
+        },
+        "status": "online"
+      },
+      {
+        "name": "Gramal",
+        "gram": {
+          "n": "-",
+          "h": "-"
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Ahlatcı",
+        "gram": {
+          "n": 6537.86,
+          "h": 6341.73
+        },
+        "ceyrek": {
+          "n": 10738.06,
+          "h": 10415.92
+        },
+        "ajda": {
+          "n": 89119.69,
+          "h": 86446.1
+        },
+        "status": "online"
+      },
+      {
+        "name": "Anadolum Altın",
+        "gram": {
+          "n": 9455.44,
+          "h": 9157.59
+        },
+        "ceyrek": {
+          "n": 15105.67,
+          "h": 14629.84
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Altın Dükkanı",
+        "gram": {
+          "n": 7208.86,
+          "h": 6931.43
+        },
+        "ceyrek": {
+          "n": "-",
+          "h": "-"
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      },
+      {
+        "name": "Altın Denizi",
+        "gram": {
+          "n": 6578.15,
+          "h": 6446.59
+        },
+        "ceyrek": {
+          "n": 10759.94,
+          "h": 10544.74
+        },
+        "ajda": {
+          "n": "-",
+          "h": "-"
+        },
+        "status": "online"
+      }
+    ]
+  },
+  {
+    "timestamp": "2026-11-22T16:12:27.106Z",
     "stores": [
       {
         "name": "Altın Anne",
